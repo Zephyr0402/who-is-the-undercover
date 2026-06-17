@@ -51,12 +51,15 @@ The app is designed to run behind the same Caddy reverse proxy that serves Tradi
    }
    ```
 
-3. Reload Caddy:
+3. Copy the updated Caddyfile to the system path and reload Caddy:
 
    ```bash
-   cd /home/bevis/TradingAgents
-   docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
+   sudo cp /home/bevis/TradingAgents/Caddyfile /etc/caddy/Caddyfile
+   sudo /usr/bin/caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+   sudo systemctl reload caddy
    ```
+
+   (If Caddy is running inside Docker in your setup, use `docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile` instead.)
 
 4. Visit `https://www.bvshen.com/who-is-the-undercover/`.
 
