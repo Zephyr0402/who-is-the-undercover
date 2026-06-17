@@ -80,13 +80,20 @@
     }, 4000);
   }
 
+  // When the app is mounted under a path prefix (e.g. /who-is-the-undercover/)
+  // all API/WebSocket calls must include that prefix. Locally the page is at /
+  // so the prefix is empty.
+  const BASE_PATH = location.pathname.replace(/\/+$/, "").replace(/\/[^/]*$/, "") || "";
+
   function apiUrl(path) {
-    return `${location.origin}${path}`;
+    const normalized = path.startsWith("/") ? path : `/${path}`;
+    return `${location.origin}${BASE_PATH}${normalized}`;
   }
 
   function wsUrl(path) {
     const protocol = location.protocol === "https:" ? "wss:" : "ws:";
-    return `${protocol}//${location.host}${path}`;
+    const normalized = path.startsWith("/") ? path : `/${path}`;
+    return `${protocol}//${location.host}${BASE_PATH}${normalized}`;
   }
 
   async function postJson(url, body) {
