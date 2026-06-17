@@ -1,0 +1,22 @@
+[
+  {"civilian": "iPhone", "undercover": "Android"},
+  {"civilian": "Pizza", "undercover": "Burger"},
+  {"civilian": "Coffee", "undercover": "Tea"},
+  {"civilian": "Beach", "undercover": "Pool"},
+  {"civilian": "Dog", "undercover": "Cat"},
+  {"civilian": "Sun", "undercover": "Moon"},
+  {"civilian": "Car", "undercover": "Bike"},
+  {"civilian": "Summer", "undercover": "Winter"},
+  {"civilian": "Movie", "undercover": "Drama"},
+  {"civilian": "WeChat", "undercover": "WhatsApp"},
+  {"civilian": "Football", "undercover": "Basketball"},
+  {"civilian": "Mountains", "undercover": "Beach"},
+  {"civilian": "Train", "undercover": "Plane"},
+  {"civilian": "Book", "undercover": "Magazine"},
+  {"civilian": "Guitar", "undercover": "Piano"},
+  {"civilian": "Chocolate", "undercover": "Candy"},
+  {"civilian": "Nike", "undercover": "Adidas"},
+  {"civilian": "Hospital", "undercover": "Clinic"},
+  {"civilian": "Police", "undercover": "Detective"},
+  {"civilian": "Teacher", "undercover": "Professor"}
+]

@@ -1,0 +1,8 @@
+services:
+  undercover:
+    build: .
+    ports:
+      - "127.0.0.1:8001:8000"
+    volumes:
+      - ./static:/home/appuser/app/static:ro
+    restart: unless-stopped

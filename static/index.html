@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Who Is The Undercover</title>
+  <link rel="stylesheet" href="static/style.css" />
+</head>
+<body>
+  <main class="container">
+    <header>
+      <h1>🕵️ Who Is The Undercover</h1>
+      <p class="subtitle">Create a room, share the code, find the spy.</p>
+    </header>
+
+    <div id="toast" class="toast hidden"></div>
+
+    <section id="landing" class="card">
+      <div class="tabs">
+        <button id="tab-create" class="tab active">Create room</button>
+        <button id="tab-join" class="tab">Join room</button>
+      </div>
+
+      <form id="create-form" class="form">
+        <label for="create-name">Your nickname</label>
+        <input id="create-name" type="text" maxlength="20" placeholder="e.g. Alice" required />
+        <button type="submit" class="btn primary">Create room</button>
+      </form>
+
+      <form id="join-form" class="form hidden">
+        <label for="join-code">Room code</label>
+        <input id="join-code" type="text" maxlength="6" placeholder="X7K9PQ" required />
+        <label for="join-name">Your nickname</label>
+        <input id="join-name" type="text" maxlength="20" placeholder="e.g. Bob" required />
+        <button type="submit" class="btn primary">Join room</button>
+      </form>
+    </section>
+
+    <section id="lobby" class="hidden">
+      <div class="card">
+        <h2>Room code</h2>
+        <div class="room-code-row">
+          <span id="room-code" class="room-code">----</span>
+          <button id="copy-code" class="btn small">Copy</button>
+        </div>
+        <p class="hint">Share this code with your friends so they can join.</p>
+      </div>
+
+      <div class="card">
+        <h2>Players</h2>
+        <ul id="player-list" class="player-list"></ul>
+        <div class="actions">
+          <button id="ready-btn" class="btn secondary">I’m ready</button>
+          <button id="start-btn" class="btn primary hidden">Start game</button>
+        </div>
+        <p id="waiting-msg" class="hint">Waiting for the host to start…</p>
+        <p id="start-hint" class="hint hidden">All players must be ready and at least 3 players are needed.</p>
+      </div>
+    </section>
+
+    <section id="game" class="hidden">
+      <div class="card role-card">
+        <div class="role-label" id="role-label">Your word</div>
+        <div class="role-word" id="role-word">-</div>
+        <div class="role-hint" id="role-hint">You are a civilian.</div>
+      </div>
+
+      <div class="card">
+        <h2>Players at the table</h2>
+        <ul id="game-player-list" class="player-list"></ul>
+      </div>
+
+      <div class="actions">
+        <button id="new-round-btn" class="btn primary hidden">New round</button>
+        <button id="leave-btn" class="btn secondary">Leave room</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="static/app.js"></script>
+</body>
+</html>
