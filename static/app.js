@@ -8,6 +8,9 @@
       appSubtitle: "Create a room, share the code, find the spy.",
       tabCreate: "Create room",
       tabJoin: "Join room",
+      langEn: "English",
+      langZh: "中文",
+      langName: "English",
       labelName: "Your nickname",
       labelCode: "Room code",
       btnCreate: "Create room",
@@ -41,6 +44,7 @@
       toastRoomNotFound: "Room not found",
       toastHostLeft: "Host left. The room has ended.",
       toastRoomEnded: "The room has ended.",
+      errorWrongLanguage: 'This room uses {lang}. Please switch the language to {lang} in the top-right corner before joining.',
       errorNameTaken: "That name is already taken in this room",
       errorGameStarted: "Game already started; only existing players can reconnect",
     },
@@ -49,6 +53,9 @@
       appSubtitle: "创建房间，分享房间号，找出卧底。",
       tabCreate: "创建房间",
       tabJoin: "加入房间",
+      langEn: "English",
+      langZh: "中文",
+      langName: "中文",
       labelName: "你的昵称",
       labelCode: "房间号",
       btnCreate: "创建房间",
@@ -82,6 +89,7 @@
       toastRoomNotFound: "房间不存在",
       toastHostLeft: "房主已离开，房间已结束。",
       toastRoomEnded: "房间已结束。",
+      errorWrongLanguage: '本房间使用{lang}语言，请先在右上角切换为{lang}再加入。',
       errorNameTaken: "该昵称已被占用",
       errorGameStarted: "游戏已开始，只有原玩家可以重连",
     },
@@ -379,6 +387,10 @@
     if (data.type === "room_state") {
       state.room = data.room;
       state.isHost = state.playerId === state.room.host_id;
+      // Sync UI language with the room language determined by the host.
+      if (state.room.language && state.room.language !== state.lang) {
+        setLang(state.room.language);
+      }
       if (state.room.status === "waiting") {
         setScreen("lobby");
         renderLobby();
@@ -435,7 +447,7 @@
       state.ws.close();
     }
 
-    const url = wsUrl(`/ws/${code}?player_id=${encodeURIComponent(playerId)}&name=${encodeURIComponent(name)}`);
+    const url = wsUrl(`/ws/${code}?player_id=${encodeURIComponent(playerId)}&name=${encodeURIComponent(name)}&language=${encodeURIComponent(state.lang)}`);
     state.ws = new WebSocket(url);
 
     state.ws.onopen = () => {
@@ -484,6 +496,7 @@
     try {
       const data = await postJson(apiUrl("/api/rooms"), {
         name: state.name,
+        language: state.lang,
         player_id: state.playerId,
       });
       state.roomCode = data.room_code;
@@ -518,6 +531,11 @@
       if (!check.ok) {
         const data = await check.json().catch(() => ({}));
         throw new Error(data.detail || `${t("toastRoomNotFound")} (${state.roomCode})`);
+      }
+      const roomInfo = await check.json();
+      if (roomInfo.language && roomInfo.language !== state.lang) {
+        const langName = i18n[roomInfo.language]?.langName || roomInfo.language;
+        throw new Error(t("errorWrongLanguage").replace(/\{lang\}/g, langName));
       }
       saveSession();
       connectWS(state.roomCode, state.playerId, state.name);
@@ -612,9 +630,13 @@
       try {
         const check = await fetch(apiUrl(`/api/rooms/${session.roomCode}`));
         if (check.ok) {
+          const roomInfo = await check.json();
           state.roomCode = session.roomCode;
           state.playerId = session.playerId;
           state.name = session.name;
+          if (roomInfo.language && roomInfo.language !== state.lang) {
+            setLang(roomInfo.language);
+          }
           connectWS(session.roomCode, session.playerId, session.name);
           setScreen("lobby");
         } else {

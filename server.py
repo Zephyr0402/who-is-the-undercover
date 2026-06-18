@@ -68,18 +68,21 @@ class Room:
     status: str = "waiting"  # "waiting" | "playing" | "finished"
     word_pair: Optional[dict[str, str]] = None
     undercover_ids: set[str] = field(default_factory=set)
+    language: str = "en"
     created_at: str = ""
     updated_at: str = ""
 
 
 class CreateRoomIn(BaseModel):
     name: str = Field(min_length=1, max_length=20)
+    language: str = Field(default="en", pattern=r"^(en|zh)$")
     player_id: Optional[str] = None
 
 
 class CreateRoomOut(BaseModel):
     room_code: str
     player_id: str
+    language: str
 
 
 # ---------------------------------------------------------------------------
@@ -140,6 +143,7 @@ CREATE TABLE IF NOT EXISTS rooms (
     word_civilian   TEXT,
     word_undercover TEXT,
     undercover_ids  TEXT,           -- JSON list
+    language        TEXT    NOT NULL DEFAULT 'en',
     created_at      TEXT    NOT NULL,
     updated_at      TEXT    NOT NULL
 );
@@ -164,6 +168,11 @@ CREATE INDEX IF NOT EXISTS idx_rooms_updated ON rooms(updated_at);
 def init_db() -> None:
     with _db() as conn:
         conn.executescript(SCHEMA)
+        # Migration: add language column to rooms created before this feature.
+        try:
+            conn.execute("ALTER TABLE rooms ADD COLUMN language TEXT NOT NULL DEFAULT 'en'")
+        except sqlite3.OperationalError:
+            pass
 
 
 def _room_to_row(room: Room) -> tuple:
@@ -174,6 +183,7 @@ def _room_to_row(room: Room) -> tuple:
         room.word_pair.get("civilian") if room.word_pair else None,
         room.word_pair.get("undercover") if room.word_pair else None,
         json.dumps(sorted(room.undercover_ids)),
+        room.language,
         room.created_at,
         room.updated_at,
     )
@@ -199,14 +209,15 @@ async def _save_room(room: Room) -> None:
             conn.execute(
                 """
                 INSERT INTO rooms (code, host_id, status, word_civilian, word_undercover,
-                                   undercover_ids, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                                   undercover_ids, language, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(code) DO UPDATE SET
                     host_id=excluded.host_id,
                     status=excluded.status,
                     word_civilian=excluded.word_civilian,
                     word_undercover=excluded.word_undercover,
                     undercover_ids=excluded.undercover_ids,
+                    language=excluded.language,
                     created_at=excluded.created_at,
                     updated_at=excluded.updated_at
                 """,
@@ -235,6 +246,7 @@ async def _load_all_rooms() -> None:
                 host_id=r["host_id"],
                 status=r["status"],
                 word_pair=None,
+                language=r["language"] or "en",
                 created_at=r["created_at"],
                 updated_at=r["updated_at"],
             )
@@ -330,6 +342,7 @@ def _public_room_state(room: Room) -> dict:
         "code": room.code,
         "status": room.status,
         "host_id": room.host_id,
+        "language": room.language,
         "players": [_public_player_for_room(p, room) for p in room.players.values()],
         "created_at": room.created_at,
         "updated_at": room.updated_at,
@@ -458,22 +471,29 @@ async def create_room(body: CreateRoomIn) -> CreateRoomOut:
         code=code,
         host_id=player_id,
         players={player_id: host},
+        language=body.language,
         created_at=now,
         updated_at=now,
     )
     rooms[code] = room
     room_locks[code] = asyncio.Lock()
     await _save_room(room)
-    return CreateRoomOut(room_code=code, player_id=player_id)
+    return CreateRoomOut(room_code=code, player_id=player_id, language=body.language)
+
+
+class RoomInfoOut(BaseModel):
+    exists: bool
+    language: str
+    room: dict
 
 
 @app.get("/api/rooms/{room_code}")
-async def get_room(room_code: str):
+async def get_room(room_code: str) -> RoomInfoOut:
     room_code = room_code.upper().strip()
     room = rooms.get(room_code)
     if not room:
         raise HTTPException(status_code=404, detail="Room not found")
-    return {"exists": True, "room": _public_room_state(room)}
+    return {"exists": True, "language": room.language, "room": _public_room_state(room)}
 
 
 # ---------------------------------------------------------------------------
@@ -486,6 +506,7 @@ async def websocket_endpoint(ws: WebSocket, room_code: str):
     room_code = room_code.upper().strip()
     player_id = ws.query_params.get("player_id", "").strip()
     name = ws.query_params.get("name", "").strip()
+    language = ws.query_params.get("language", "").strip() or room.language
 
     room = rooms.get(room_code)
     if not room:
@@ -506,6 +527,11 @@ async def websocket_endpoint(ws: WebSocket, room_code: str):
             existing.ws = ws
             existing.is_online = True
         else:
+            if language != room.language:
+                await ws.accept()
+                await _send(ws, {"type": "error", "message": "Language mismatch"})
+                await ws.close()
+                return
             if room.status != "waiting":
                 await ws.accept()
                 await _send(ws, {"type": "error", "message": "Game already started; only existing players can reconnect"})
