@@ -60,6 +60,27 @@ h2 {
   box-shadow: var(--shadow);
 }
 
+.lang-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.lang-select {
+  padding: 8px 12px;
+  border: 2px solid var(--secondary);
+  border-radius: var(--radius);
+  background: var(--card);
+  font-size: 0.95rem;
+  color: var(--text);
+  outline: none;
+  cursor: pointer;
+}
+
+.lang-select:focus {
+  border-color: var(--primary);
+}
+
 .tabs {
   display: flex;
   gap: 8px;
@@ -217,6 +238,9 @@ input:focus {
   border-radius: 999px;
   font-size: 0.75rem;
   font-weight: 700;
+}
+
+html[lang="en"] .badge {
   text-transform: uppercase;
 }
 

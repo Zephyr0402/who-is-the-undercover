@@ -1,5 +1,87 @@
 (() => {
+  const LANG_KEY = "wiu:lang";
   const STORAGE_KEY = "wiu:last-session";
+
+  const i18n = {
+    en: {
+      appTitle: "Who Is The Undercover",
+      appSubtitle: "Create a room, share the code, find the spy.",
+      tabCreate: "Create room",
+      tabJoin: "Join room",
+      labelName: "Your nickname",
+      labelCode: "Room code",
+      btnCreate: "Create room",
+      btnJoin: "Join room",
+      titleRoomCode: "Room code",
+      btnCopy: "Copy",
+      hintShareCode: "Share this code with your friends so they can join.",
+      titlePlayers: "Players",
+      btnReadyOn: "I’m ready",
+      btnReadyOff: "Not ready",
+      btnStart: "Start game",
+      hintWaiting: "Waiting for the host to start…",
+      hintStart: "All players must be ready and at least 3 players are needed.",
+      labelYourWord: "Your word",
+      roleCivilian: "Civilian",
+      roleUndercover: "Undercover",
+      hintCivilian: "You are a civilian. Figure out who the undercover is.",
+      hintUndercover: "You are the undercover! Blend in with the civilians.",
+      hintWaitingRole: "The host will start the next round.",
+      titlePlayersAtTable: "Players at the table",
+      btnNewRound: "New round",
+      btnLeave: "Leave room",
+      badgeHost: "Host",
+      badgeReady: "Ready",
+      badgeOffline: "Offline",
+      you: "you",
+      toastCopied: "Copied!",
+      toastCopyFailed: "Could not copy automatically",
+      toastReconnecting: "Connection lost. Trying to reconnect…",
+      toastGameStarted: "Game started! Check your card.",
+      toastRoomNotFound: "Room not found",
+      errorNameTaken: "That name is already taken in this room",
+      errorGameStarted: "Game already started; only existing players can reconnect",
+    },
+    zh: {
+      appTitle: "谁是卧底",
+      appSubtitle: "创建房间，分享房间号，找出卧底。",
+      tabCreate: "创建房间",
+      tabJoin: "加入房间",
+      labelName: "你的昵称",
+      labelCode: "房间号",
+      btnCreate: "创建房间",
+      btnJoin: "加入房间",
+      titleRoomCode: "房间号",
+      btnCopy: "复制",
+      hintShareCode: "把房间号分享给朋友，让他们加入。",
+      titlePlayers: "玩家",
+      btnReadyOn: "我准备好了",
+      btnReadyOff: "取消准备",
+      btnStart: "开始游戏",
+      hintWaiting: "等待房主开始游戏…",
+      hintStart: "所有玩家都必须准备，且至少需要 3 名玩家。",
+      labelYourWord: "你的词",
+      roleCivilian: "平民",
+      roleUndercover: "卧底",
+      hintCivilian: "你是平民。找出谁是卧底。",
+      hintUndercover: "你是卧底！假装成平民。",
+      hintWaitingRole: "房主将开始下一轮。",
+      titlePlayersAtTable: "桌上的玩家",
+      btnNewRound: "新一轮",
+      btnLeave: "离开房间",
+      badgeHost: "房主",
+      badgeReady: "已准备",
+      badgeOffline: "离线",
+      you: "你",
+      toastCopied: "已复制！",
+      toastCopyFailed: "无法自动复制",
+      toastReconnecting: "连接断开，正在重新连接…",
+      toastGameStarted: "游戏开始！查看你的词。",
+      toastRoomNotFound: "房间不存在",
+      errorNameTaken: "该昵称已被占用",
+      errorGameStarted: "游戏已开始，只有原玩家可以重连",
+    },
+  };
 
   const state = {
     ws: null,
@@ -10,6 +92,7 @@
     myRole: null,
     myWord: null,
     isHost: false,
+    lang: localStorage.getItem(LANG_KEY) || "en",
   };
 
   // DOM refs
@@ -18,6 +101,7 @@
     landing: document.getElementById("landing"),
     lobby: document.getElementById("lobby"),
     game: document.getElementById("game"),
+    langSelect: document.getElementById("lang-select"),
     tabCreate: document.getElementById("tab-create"),
     tabJoin: document.getElementById("tab-join"),
     createForm: document.getElementById("create-form"),
@@ -72,6 +156,34 @@
     }
   }
 
+  function t(key, fallback = key) {
+    return (i18n[state.lang] && i18n[state.lang][key]) || fallback;
+  }
+
+  function applyLanguage() {
+    els.langSelect.value = state.lang;
+    document.documentElement.lang = state.lang === "zh" ? "zh-CN" : "en";
+    document.querySelectorAll("[data-key]").forEach((el) => {
+      const key = el.getAttribute("data-key");
+      const text = t(key);
+      if (el.tagName === "INPUT") {
+        el.placeholder = text;
+      } else {
+        el.textContent = text;
+      }
+    });
+    // Re-render dynamic screens so button text updates.
+    renderLobby();
+    renderGame();
+  }
+
+  function setLang(lang) {
+    if (!i18n[lang]) return;
+    state.lang = lang;
+    localStorage.setItem(LANG_KEY, lang);
+    applyLanguage();
+  }
+
   function showToast(message, type = "error") {
     els.toast.textContent = message;
     els.toast.className = `toast ${type}`;
@@ -82,8 +194,12 @@
 
   // When the app is mounted under a path prefix (e.g. /who-is-the-undercover/)
   // all API/WebSocket calls must include that prefix. Locally the page is at /
-  // so the prefix is empty.
-  const BASE_PATH = location.pathname.replace(/\/+$/, "").replace(/\/[^/]*$/, "") || "";
+  // so the prefix is empty. We compute it from the <base> tag if present, or
+  // from the script src path as a fallback.
+  const baseTag = document.querySelector("base");
+  const BASE_PATH = (baseTag?.getAttribute("href") || "")
+    .replace(/\/+$/, "")
+    .replace(/\/$/, "");
 
   function apiUrl(path) {
     const normalized = path.startsWith("/") ? path : `/${path}`;
@@ -141,7 +257,7 @@
     const enoughPlayers = state.room.players.length >= 3;
     const canStart = state.isHost && state.room.status === "waiting" && allReady && enoughPlayers;
 
-    els.readyBtn.textContent = me.is_ready ? "Not ready" : "I’m ready";
+    els.readyBtn.textContent = me.is_ready ? t("btnReadyOff") : t("btnReadyOn");
     els.readyBtn.disabled = state.room.status !== "waiting";
 
     if (state.isHost) {
@@ -158,12 +274,12 @@
     els.playerList.innerHTML = state.room.players
       .map((p) => {
         const badges = [];
-        if (p.is_host) badges.push('<span class="badge host">Host</span>');
-        if (p.is_ready) badges.push('<span class="badge ready">Ready</span>');
-        if (!p.is_online) badges.push('<span class="badge offline">Offline</span>');
+        if (p.is_host) badges.push(`<span class="badge host">${t("badgeHost")}</span>`);
+        if (p.is_ready) badges.push(`<span class="badge ready">${t("badgeReady")}</span>`);
+        if (!p.is_online) badges.push(`<span class="badge offline">${t("badgeOffline")}</span>`);
         return `
           <li>
-            <span class="player-name">${escapeHtml(p.name)} ${p.id === state.playerId ? "(you)" : ""}</span>
+            <span class="player-name">${escapeHtml(p.name)} ${p.id === state.playerId ? `(${t("you")})` : ""}</span>
             <span class="player-meta">${badges.join("")}</span>
           </li>
         `;
@@ -177,16 +293,16 @@
 
     els.roleWord.textContent = state.myWord || "?";
     if (state.myRole === "undercover") {
-      els.roleLabel.textContent = "Undercover";
-      els.roleHint.textContent = "You are the undercover! Blend in with the civilians.";
+      els.roleLabel.textContent = t("roleUndercover");
+      els.roleHint.textContent = t("hintUndercover");
       document.querySelector(".role-card").style.borderColor = "var(--accent)";
     } else if (state.myRole === "civilian") {
-      els.roleLabel.textContent = "Civilian";
-      els.roleHint.textContent = "You are a civilian. Figure out who the undercover is.";
+      els.roleLabel.textContent = t("roleCivilian");
+      els.roleHint.textContent = t("hintCivilian");
       document.querySelector(".role-card").style.borderColor = "var(--success)";
     } else {
-      els.roleLabel.textContent = "Waiting…";
-      els.roleHint.textContent = "The host will start the next round.";
+      els.roleLabel.textContent = "…";
+      els.roleHint.textContent = t("hintWaitingRole");
     }
 
     state.isHost = state.playerId === state.room.host_id;
@@ -195,11 +311,11 @@
     els.gamePlayerList.innerHTML = state.room.players
       .map((p) => {
         const badges = [];
-        if (p.is_host) badges.push('<span class="badge host">Host</span>');
-        if (!p.is_online) badges.push('<span class="badge offline">Offline</span>');
+        if (p.is_host) badges.push(`<span class="badge host">${t("badgeHost")}</span>`);
+        if (!p.is_online) badges.push(`<span class="badge offline">${t("badgeOffline")}</span>`);
         return `
           <li>
-            <span class="player-name">${escapeHtml(p.name)} ${p.id === state.playerId ? "(you)" : ""}</span>
+            <span class="player-name">${escapeHtml(p.name)} ${p.id === state.playerId ? `(${t("you")})` : ""}</span>
             <span class="player-meta">${badges.join("")}</span>
           </li>
         `;
@@ -230,7 +346,7 @@
       setScreen("game");
       renderGame();
     } else if (data.type === "game_started" || data.type === "new_round") {
-      showToast("Game started! Check your card.", "info");
+      showToast(t("toastGameStarted"), "info");
     } else if (data.type === "error") {
       showToast(data.message);
     }
@@ -262,7 +378,7 @@
     };
 
     state.ws.onerror = () => {
-      showToast("Connection lost. Trying to reconnect…");
+      showToast(t("toastReconnecting"));
       setTimeout(() => {
         if (state.roomCode) connectWS(state.roomCode, state.playerId, state.name);
       }, 1500);
@@ -341,15 +457,19 @@
   async function copyCode() {
     try {
       await navigator.clipboard.writeText(state.roomCode);
-      showToast("Copied!", "info");
+      showToast(t("toastCopied"), "info");
     } catch {
-      showToast("Could not copy automatically");
+      showToast(t("toastCopyFailed"));
     }
   }
 
   function init() {
     els.tabCreate.addEventListener("click", () => switchTab("create"));
     els.tabJoin.addEventListener("click", () => switchTab("join"));
+
+    if (els.langSelect) {
+      els.langSelect.addEventListener("change", (e) => setLang(e.target.value));
+    }
 
     els.createForm.addEventListener("submit", (e) => {
       e.preventDefault();
@@ -366,6 +486,8 @@
     els.newRoundBtn.addEventListener("click", newRound);
     els.leaveBtn.addEventListener("click", leaveRoom);
     els.copyCode.addEventListener("click", copyCode);
+
+    applyLanguage();
 
     const session = loadSession();
     if (session && session.roomCode && session.playerId && session.name) {
