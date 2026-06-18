@@ -118,10 +118,13 @@ def _undercover_count(total: int) -> int:
     return 4
 
 
-def _load_words() -> list[dict[str, str]]:
-    if not WORDS_FILE.exists():
+def _load_words(language: str = "en") -> list[dict[str, str]]:
+    file_for_lang = Path(__file__).parent / f"words_{language}.json"
+    fallback = WORDS_FILE if WORDS_FILE.exists() else Path(__file__).parent / "words_en.json"
+    target = file_for_lang if file_for_lang.exists() else fallback
+    if not target.exists():
         return [{"civilian": "Apple", "undercover": "Pear"}]
-    with WORDS_FILE.open(encoding="utf-8") as f:
+    with target.open(encoding="utf-8") as f:
         data = json.load(f)
     return [item for item in data if "civilian" in item and "undercover" in item]
 
@@ -382,7 +385,11 @@ async def _send_private_role(player: Player) -> None:
 
 
 def _assign_roles(room: Room) -> None:
-    room.word_pair = random.choice(WORD_PAIRS)
+    words = WORD_PAIRS.get(room.language, [])
+    if not words:
+        # Fallback to English if no word list exists for this language.
+        words = WORD_PAIRS.get("en", [{"civilian": "Apple", "undercover": "Pear"}])
+    room.word_pair = random.choice(words)
     player_ids = list(room.players.keys())
     random.shuffle(player_ids)
     count = _undercover_count(len(player_ids))
@@ -416,7 +423,10 @@ def _reset_room_for_new_round(room: Room) -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global WORD_PAIRS
-    WORD_PAIRS = _load_words()
+    WORD_PAIRS = {
+        "en": _load_words("en"),
+        "zh": _load_words("zh"),
+    }
     init_db()
     await _load_all_rooms()
     cleanup_task = asyncio.create_task(_cleanup_loop())
@@ -657,4 +667,5 @@ async def websocket_endpoint(ws: WebSocket, room_code: str):
 
 @app.get("/api/health")
 async def health():
-    return {"ok": True, "rooms": len(rooms), "words": len(WORD_PAIRS)}
+    total_words = sum(len(v) for v in WORD_PAIRS.values())
+    return {"ok": True, "rooms": len(rooms), "words": total_words}

@@ -1,0 +1,402 @@
+[
+  {
+    "civilian": "waffle",
+    "undercover": "pancake"
+  },
+  {
+    "civilian": "pizza",
+    "undercover": "calzone"
+  },
+  {
+    "civilian": "coffee",
+    "undercover": "tea"
+  },
+  {
+    "civilian": "burger",
+    "undercover": "sandwich"
+  },
+  {
+    "civilian": "sushi",
+    "undercover": "sashimi"
+  },
+  {
+    "civilian": "donut",
+    "undercover": "bagel"
+  },
+  {
+    "civilian": "ketchup",
+    "undercover": "mustard"
+  },
+  {
+    "civilian": "brownie",
+    "undercover": "fudge"
+  },
+  {
+    "civilian": "bacon",
+    "undercover": "ham"
+  },
+  {
+    "civilian": "milkshake",
+    "undercover": "smoothie"
+  },
+  {
+    "civilian": "pretzel",
+    "undercover": "breadstick"
+  },
+  {
+    "civilian": "ranch dressing",
+    "undercover": "blue cheese dressing"
+  },
+  {
+    "civilian": "cornbread",
+    "undercover": "biscuit"
+  },
+  {
+    "civilian": "mac and cheese",
+    "undercover": "grilled cheese"
+  },
+  {
+    "civilian": "BBQ ribs",
+    "undercover": "BBQ wings"
+  },
+  {
+    "civilian": "dolphin",
+    "undercover": "whale"
+  },
+  {
+    "civilian": "cat",
+    "undercover": "tiger"
+  },
+  {
+    "civilian": "dog",
+    "undercover": "wolf"
+  },
+  {
+    "civilian": "eagle",
+    "undercover": "hawk"
+  },
+  {
+    "civilian": "octopus",
+    "undercover": "squid"
+  },
+  {
+    "civilian": "alligator",
+    "undercover": "crocodile"
+  },
+  {
+    "civilian": "bison",
+    "undercover": "buffalo"
+  },
+  {
+    "civilian": "raccoon",
+    "undercover": "possum"
+  },
+  {
+    "civilian": "chipmunk",
+    "undercover": "squirrel"
+  },
+  {
+    "civilian": "turkey",
+    "undercover": "chicken"
+  },
+  {
+    "civilian": "moose",
+    "undercover": "elk"
+  },
+  {
+    "civilian": "TikTok",
+    "undercover": "Instagram Reels"
+  },
+  {
+    "civilian": "iPhone",
+    "undercover": "Android"
+  },
+  {
+    "civilian": "Netflix",
+    "undercover": "Hulu"
+  },
+  {
+    "civilian": "PlayStation",
+    "undercover": "Xbox"
+  },
+  {
+    "civilian": "Twitter",
+    "undercover": "Threads"
+  },
+  {
+    "civilian": "Google",
+    "undercover": "Bing"
+  },
+  {
+    "civilian": "Spotify",
+    "undercover": "Apple Music"
+  },
+  {
+    "civilian": "Uber",
+    "undercover": "Lyft"
+  },
+  {
+    "civilian": "ChatGPT",
+    "undercover": "Claude"
+  },
+  {
+    "civilian": "Discord",
+    "undercover": "Slack"
+  },
+  {
+    "civilian": "Venmo",
+    "undercover": "Cash App"
+  },
+  {
+    "civilian": "Reddit",
+    "undercover": "Quora"
+  },
+  {
+    "civilian": "jealousy",
+    "undercover": "envy"
+  },
+  {
+    "civilian": "freedom",
+    "undercover": "independence"
+  },
+  {
+    "civilian": "joy",
+    "undercover": "happiness"
+  },
+  {
+    "civilian": "courage",
+    "undercover": "bravery"
+  },
+  {
+    "civilian": "fear",
+    "undercover": "terror"
+  },
+  {
+    "civilian": "nostalgia",
+    "undercover": "homesickness"
+  },
+  {
+    "civilian": "pride",
+    "undercover": "arrogance"
+  },
+  {
+    "civilian": "wisdom",
+    "undercover": "knowledge"
+  },
+  {
+    "civilian": "luck",
+    "undercover": "fate"
+  },
+  {
+    "civilian": "empathy",
+    "undercover": "sympathy"
+  },
+  {
+    "civilian": "guilt",
+    "undercover": "shame"
+  },
+  {
+    "civilian": "New York",
+    "undercover": "Los Angeles"
+  },
+  {
+    "civilian": "Times Square",
+    "undercover": "Hollywood Boulevard"
+  },
+  {
+    "civilian": "Grand Canyon",
+    "undercover": "Niagara Falls"
+  },
+  {
+    "civilian": "Disneyland",
+    "undercover": "Universal Studios"
+  },
+  {
+    "civilian": "Las Vegas",
+    "undercover": "Atlantic City"
+  },
+  {
+    "civilian": "Central Park",
+    "undercover": "Golden Gate Park"
+  },
+  {
+    "civilian": "Yellowstone",
+    "undercover": "Yosemite"
+  },
+  {
+    "civilian": "Harvard",
+    "undercover": "Yale"
+  },
+  {
+    "civilian": "Wall Street",
+    "undercover": "Silicon Valley"
+  },
+  {
+    "civilian": "Mount Rushmore",
+    "undercover": "Statue of Liberty"
+  },
+  {
+    "civilian": "Miami Beach",
+    "undercover": "Malibu"
+  },
+  {
+    "civilian": "football",
+    "undercover": "rugby"
+  },
+  {
+    "civilian": "baseball",
+    "undercover": "softball"
+  },
+  {
+    "civilian": "basketball",
+    "undercover": "volleyball"
+  },
+  {
+    "civilian": "Super Bowl",
+    "undercover": "World Series"
+  },
+  {
+    "civilian": "NFL",
+    "undercover": "NBA"
+  },
+  {
+    "civilian": "quarterback",
+    "undercover": "pitcher"
+  },
+  {
+    "civilian": "NASCAR",
+    "undercover": "Formula 1"
+  },
+  {
+    "civilian": "surfing",
+    "undercover": "skateboarding"
+  },
+  {
+    "civilian": "wrestling",
+    "undercover": "boxing"
+  },
+  {
+    "civilian": "touchdown",
+    "undercover": "home run"
+  },
+  {
+    "civilian": "March Madness",
+    "undercover": "World Cup"
+  },
+  {
+    "civilian": "hip-hop",
+    "undercover": "R&B"
+  },
+  {
+    "civilian": "rock",
+    "undercover": "metal"
+  },
+  {
+    "civilian": "country",
+    "undercover": "folk"
+  },
+  {
+    "civilian": "guitar",
+    "undercover": "bass"
+  },
+  {
+    "civilian": "Grammy Awards",
+    "undercover": "MTV VMAs"
+  },
+  {
+    "civilian": "Taylor Swift",
+    "undercover": "Beyoncé"
+  },
+  {
+    "civilian": "Coachella",
+    "undercover": "Lollapalooza"
+  },
+  {
+    "civilian": "Drake",
+    "undercover": "Kendrick Lamar"
+  },
+  {
+    "civilian": "Elvis Presley",
+    "undercover": "Michael Jackson"
+  },
+  {
+    "civilian": "vinyl record",
+    "undercover": "cassette tape"
+  },
+  {
+    "civilian": "Star Wars",
+    "undercover": "Star Trek"
+  },
+  {
+    "civilian": "Marvel",
+    "undercover": "DC"
+  },
+  {
+    "civilian": "Harry Potter",
+    "undercover": "Lord of the Rings"
+  },
+  {
+    "civilian": "Oscar",
+    "undercover": "Golden Globe"
+  },
+  {
+    "civilian": "Pixar",
+    "undercover": "DreamWorks"
+  },
+  {
+    "civilian": "Jurassic Park",
+    "undercover": "King Kong"
+  },
+  {
+    "civilian": "The Godfather",
+    "undercover": "Scarface"
+  },
+  {
+    "civilian": "Rocky",
+    "undercover": "Rambo"
+  },
+  {
+    "civilian": "Batman",
+    "undercover": "Spider-Man"
+  },
+  {
+    "civilian": "Toy Story",
+    "undercover": "Shrek"
+  },
+  {
+    "civilian": "Disney princess",
+    "undercover": "Barbie"
+  },
+  {
+    "civilian": "Halloween",
+    "undercover": "Día de los Muertos"
+  },
+  {
+    "civilian": "Fortnite",
+    "undercover": "Minecraft"
+  },
+  {
+    "civilian": "Super Mario",
+    "undercover": "Sonic"
+  },
+  {
+    "civilian": "Pokémon",
+    "undercover": "Digimon"
+  },
+  {
+    "civilian": "meme",
+    "undercover": "GIF"
+  },
+  {
+    "civilian": "Comic-Con",
+    "undercover": "E3"
+  },
+  {
+    "civilian": "emoji",
+    "undercover": "sticker"
+  },
+  {
+    "civilian": "Black Friday",
+    "undercover": "Cyber Monday"
+  }
+]
