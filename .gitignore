@@ -6,6 +6,9 @@ __pycache__/
 .venv/
 venv/
 *.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
 .DS_Store
 *.log
 .pytest_cache/
+data/

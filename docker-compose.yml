@@ -5,4 +5,8 @@ services:
       - "127.0.0.1:8001:8000"
     volumes:
       - ./static:/home/appuser/app/static:ro
+      - undercover_data:/home/appuser/app/data
     restart: unless-stopped
+
+volumes:
+  undercover_data:
