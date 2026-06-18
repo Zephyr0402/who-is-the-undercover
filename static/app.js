@@ -83,6 +83,31 @@
     },
   };
 
+  // Safe localStorage wrapper for browsers with restricted storage (iOS private mode).
+  function storageGet(key) {
+    try {
+      return localStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  }
+
+  function storageSet(key, value) {
+    try {
+      localStorage.setItem(key, value);
+    } catch {
+      // ignore
+    }
+  }
+
+  function storageRemove(key) {
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      // ignore
+    }
+  }
+
   const state = {
     ws: null,
     roomCode: null,
@@ -92,7 +117,7 @@
     myRole: null,
     myWord: null,
     isHost: false,
-    lang: localStorage.getItem(LANG_KEY) || "en",
+    lang: storageGet(LANG_KEY) || "en",
   };
 
   // DOM refs
@@ -135,7 +160,7 @@
   }
 
   function saveSession() {
-    localStorage.setItem(
+    storageSet(
       STORAGE_KEY,
       JSON.stringify({
         roomCode: state.roomCode,
@@ -146,12 +171,12 @@
   }
 
   function clearSession() {
-    localStorage.removeItem(STORAGE_KEY);
+    storageRemove(STORAGE_KEY);
   }
 
   function loadSession() {
     try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+      return JSON.parse(storageGet(STORAGE_KEY) || "null");
     } catch {
       return null;
     }
@@ -182,7 +207,7 @@
   function setLang(lang) {
     if (!i18n[lang]) return;
     state.lang = lang;
-    localStorage.setItem(LANG_KEY, lang);
+    storageSet(LANG_KEY, lang);
     applyLanguage();
   }
 
@@ -196,12 +221,18 @@
 
   // When the app is mounted under a path prefix (e.g. /who-is-the-undercover/)
   // all API/WebSocket calls must include that prefix. Locally the page is at /
-  // so the prefix is empty. We compute it from the <base> tag if present, or
-  // from the script src path as a fallback.
-  const baseTag = document.querySelector("base");
-  const BASE_PATH = (baseTag?.getAttribute("href") || "")
-    .replace(/\/+$/, "")
-    .replace(/\/$/, "");
+  // so the prefix is empty. We compute it from the loaded script's URL because
+  // that is more reliable across browsers (including iOS WebKit) than the
+  // <base> tag or location.pathname.
+  const currentScript = document.currentScript ||
+    document.querySelector('script[src*="app.js"]');
+  let BASE_PATH = "";
+  try {
+    const scriptUrl = new URL(currentScript?.src || "https://www.bvshen.com/who-is-the-undercover/static/app.js");
+    BASE_PATH = scriptUrl.pathname.replace(/\/[^/]+$/, "").replace(/\/$/, "");
+  } catch {
+    BASE_PATH = "/who-is-the-undercover";
+  }
 
   function apiUrl(path) {
     const normalized = path.startsWith("/") ? path : `/${path}`;

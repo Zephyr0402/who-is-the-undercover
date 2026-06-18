@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <title>Who Is The Undercover · 谁是卧底</title>
   <base href="/who-is-the-undercover/" />
   <link rel="stylesheet" href="static/style.css" />
@@ -35,7 +37,7 @@
 
       <form id="join-form" class="form hidden">
         <label for="join-code" data-key="labelCode">Room code</label>
-        <input id="join-code" type="text" maxlength="6" placeholder="X7K9PQ" required />
+        <input id="join-code" type="text" maxlength="6" placeholder="X7K9PQ" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" required />
         <label for="join-name" data-key="labelName">Your nickname</label>
         <input id="join-name" type="text" maxlength="20" placeholder="e.g. Bob" required />
         <button type="submit" class="btn primary" data-key="btnJoin">Join room</button>
@@ -56,8 +58,8 @@
         <h2 data-key="titlePlayers">Players</h2>
         <ul id="player-list" class="player-list"></ul>
         <div class="actions">
-          <button id="ready-btn" class="btn secondary" data-key="btnReady">I’m ready</button>
-          <button id="start-btn" class="btn primary hidden" data-key="btnStart">Start game</button>
+          <button id="ready-btn" type="button" class="btn secondary" data-key="btnReady">I’m ready</button>
+          <button id="start-btn" type="button" class="btn primary hidden" data-key="btnStart">Start game</button>
         </div>
         <p id="waiting-msg" class="hint" data-key="hintWaiting">Waiting for the host to start…</p>
         <p id="start-hint" class="hint hidden" data-key="hintStart">All players must be ready and at least 3 players are needed.</p>
@@ -77,12 +79,12 @@
       </div>
 
       <div class="actions">
-        <button id="new-round-btn" class="btn primary hidden" data-key="btnNewRound">New round</button>
-        <button id="leave-btn" class="btn secondary" data-key="btnLeave">Leave room</button>
+        <button id="new-round-btn" type="button" class="btn primary hidden" data-key="btnNewRound">New round</button>
+        <button id="leave-btn" type="button" class="btn secondary" data-key="btnLeave">Leave room</button>
       </div>
     </section>
   </main>
 
-  <script src="static/app.js?v=2"></script>
+  <script src="static/app.js?v=3"></script>
 </body>
 </html>
