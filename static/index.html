@@ -30,13 +30,13 @@
         <button id="tab-join" class="tab" data-key="tabJoin">Join room</button>
       </div>
 
-      <form id="create-form" class="form">
+      <form id="create-form" class="form" onsubmit="return false;">
         <label for="create-name" data-key="labelName">Your nickname</label>
         <input id="create-name" type="text" maxlength="20" placeholder="e.g. Alice" required />
         <button type="submit" class="btn primary" data-key="btnCreate">Create room</button>
       </form>
 
-      <form id="join-form" class="form hidden">
+      <form id="join-form" class="form hidden" onsubmit="return false;">
         <label for="join-code" data-key="labelCode">Room code</label>
         <input id="join-code" type="text" maxlength="6" placeholder="X7K9PQ" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" required />
         <label for="join-name" data-key="labelName">Your nickname</label>
@@ -86,6 +86,6 @@
     </section>
   </main>
 
-  <script src="static/app.js?v=4"></script>
+  <script src="static/app.js?v=5"></script>
 </body>
 </html>

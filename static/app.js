@@ -236,7 +236,8 @@
   let BASE_PATH = "";
   try {
     const scriptUrl = new URL(currentScript?.src || "https://www.bvshen.com/who-is-the-undercover/static/app.js");
-    BASE_PATH = scriptUrl.pathname.replace(/\/[^/]+$/, "").replace(/\/$/, "");
+    // The script lives at <BASE_PATH>/static/app.js, so strip the last two segments.
+    BASE_PATH = scriptUrl.pathname.replace(/\/[^/]+\/[^/]+$/, "");
   } catch {
     BASE_PATH = "/who-is-the-undercover";
   }

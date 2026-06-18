@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -417,6 +418,17 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Who Is The Undercover", lifespan=lifespan, docs_url=None, redoc_url=None)
+
+# Allow browser preflight/CORS requests from any origin (the site is public and
+# has no auth cookies). This fixes "Method Not Allowed" from OPTIONS preflight.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"],
+)
 
 
 @app.get("/", include_in_schema=False)
