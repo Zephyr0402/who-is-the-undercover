@@ -349,6 +349,24 @@
       showToast(t("toastGameStarted"), "info");
     } else if (data.type === "error") {
       showToast(data.message);
+      // If the server tells us the room is gone, stop trying and start over.
+      if (
+        data.message &&
+        (data.message.toLowerCase().includes("room not found") ||
+          data.message.includes("房间不存在"))
+      ) {
+        clearSession();
+        state.room = null;
+        state.roomCode = null;
+        state.myRole = null;
+        state.myWord = null;
+        if (state.ws) {
+          state.ws.close();
+          state.ws = null;
+        }
+        setScreen("landing");
+        switchTab("create");
+      }
     }
   }
 
@@ -373,11 +391,26 @@
       }
     };
 
+    let reconnectAttempts = 0;
+    const maxReconnects = 3;
+
     state.ws.onclose = () => {
       state.ws = null;
     };
 
     state.ws.onerror = () => {
+      reconnectAttempts++;
+      if (reconnectAttempts > maxReconnects) {
+        showToast(t("toastRoomNotFound"));
+        clearSession();
+        state.room = null;
+        state.roomCode = null;
+        state.myRole = null;
+        state.myWord = null;
+        setScreen("landing");
+        switchTab("create");
+        return;
+      }
       showToast(t("toastReconnecting"));
       setTimeout(() => {
         if (state.roomCode) connectWS(state.roomCode, state.playerId, state.name);
