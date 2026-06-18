@@ -436,6 +436,7 @@
   }
 
   async function joinRoom(code, name) {
+    clearSession(); // ensure no stale session interferes
     state.playerId = generateId();
     state.name = name.trim();
     state.roomCode = code.toUpperCase().trim();
@@ -444,8 +445,9 @@
       const check = await fetch(apiUrl(`/api/rooms/${state.roomCode}`));
       if (!check.ok) {
         const data = await check.json().catch(() => ({}));
-        throw new Error(data.detail || "Room not found");
+        throw new Error(data.detail || t("toastRoomNotFound"));
       }
+      saveSession();
       connectWS(state.roomCode, state.playerId, state.name);
       setScreen("lobby");
     } catch (err) {
@@ -524,11 +526,24 @@
 
     const session = loadSession();
     if (session && session.roomCode && session.playerId && session.name) {
-      state.roomCode = session.roomCode;
-      state.playerId = session.playerId;
-      state.name = session.name;
-      connectWS(session.roomCode, session.playerId, session.name);
-      setScreen("lobby");
+      // Validate that the stored room still exists before auto-reconnecting;
+      // otherwise the join form won't work and the user gets stuck.
+      try {
+        const check = await fetch(apiUrl(`/api/rooms/${session.roomCode}`));
+        if (check.ok) {
+          state.roomCode = session.roomCode;
+          state.playerId = session.playerId;
+          state.name = session.name;
+          connectWS(session.roomCode, session.playerId, session.name);
+          setScreen("lobby");
+        } else {
+          clearSession();
+          setScreen("landing");
+        }
+      } catch {
+        clearSession();
+        setScreen("landing");
+      }
     }
   }
 
