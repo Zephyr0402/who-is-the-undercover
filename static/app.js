@@ -211,6 +211,13 @@
     applyLanguage();
   }
 
+  function sanitizeCode(value) {
+    return value
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, "")
+      .slice(0, 6);
+  }
+
   function showToast(message, type = "error") {
     els.toast.textContent = message;
     els.toast.className = `toast ${type}`;
@@ -472,19 +479,36 @@
     clearSession(); // ensure no stale session interferes
     state.playerId = generateId();
     state.name = name.trim();
-    state.roomCode = code.toUpperCase().trim();
+    state.roomCode = sanitizeCode(code);
+
+    if (state.roomCode.length === 0) {
+      showToast(t("toastRoomNotFound"));
+      return;
+    }
+
+    const submitBtn = els.joinForm.querySelector('button[type="submit"]');
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = "…";
+    }
 
     try {
-      const check = await fetch(apiUrl(`/api/rooms/${state.roomCode}`));
+      const url = apiUrl(`/api/rooms/${state.roomCode}`);
+      const check = await fetch(url);
       if (!check.ok) {
         const data = await check.json().catch(() => ({}));
-        throw new Error(data.detail || t("toastRoomNotFound"));
+        throw new Error(data.detail || `${t("toastRoomNotFound")} (${state.roomCode})`);
       }
       saveSession();
       connectWS(state.roomCode, state.playerId, state.name);
       setScreen("lobby");
     } catch (err) {
-      showToast(err.message);
+      showToast(err.message || t("toastRoomNotFound"));
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        applyLanguage();
+      }
     }
   }
 
@@ -546,6 +570,10 @@
     els.joinForm.addEventListener("submit", (e) => {
       e.preventDefault();
       joinRoom(els.joinCode.value, els.joinName.value);
+    });
+
+    els.joinCode.addEventListener("input", (e) => {
+      e.target.value = sanitizeCode(e.target.value);
     });
 
     els.readyBtn.addEventListener("click", toggleReady);

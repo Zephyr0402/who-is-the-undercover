@@ -10,53 +10,65 @@
   --accent: #f59e0b;
   --danger: #ef4444;
   --success: #10b981;
-  --radius: 12px;
-  --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --radius: 14px;
+  --shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 }
 
 * {
   box-sizing: border-box;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+}
+
+html {
+  height: 100%;
 }
 
 body {
   margin: 0;
+  min-height: 100%;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   background: var(--bg);
   color: var(--text);
-  line-height: 1.5;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
 .container {
-  max-width: 540px;
+  width: 100%;
+  max-width: 560px;
   margin: 0 auto;
-  padding: 24px 16px 48px;
+  padding: 20px 16px 32px;
 }
 
 header {
   text-align: center;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
+  padding-top: 8px;
 }
 
 h1 {
   margin: 0;
-  font-size: 1.75rem;
+  font-size: clamp(1.6rem, 6vw, 2rem);
 }
 
 .subtitle {
   margin: 6px 0 0;
   color: var(--muted);
+  font-size: 0.95rem;
 }
 
 h2 {
-  margin: 0 0 12px;
-  font-size: 1.1rem;
+  margin: 0 0 14px;
+  font-size: 1.05rem;
+  color: var(--muted);
 }
 
 .card {
   background: var(--card);
   border-radius: var(--radius);
-  padding: 20px;
-  margin-bottom: 16px;
+  padding: 18px;
+  margin-bottom: 14px;
   box-shadow: var(--shadow);
 }
 
@@ -64,21 +76,22 @@ h2 {
   display: flex;
   justify-content: flex-end;
   margin-bottom: 12px;
-  gap: 6px;
+  gap: 8px;
 }
 
 .lang-btn {
-  padding: 6px 12px;
+  padding: 8px 14px;
   border: 2px solid var(--secondary);
-  border-radius: var(--radius);
+  border-radius: 999px;
   background: var(--card);
   color: var(--muted);
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 0.9rem;
+  font-weight: 700;
   cursor: pointer;
   -webkit-appearance: none;
   appearance: none;
   touch-action: manipulation;
+  min-height: 38px;
 }
 
 .lang-btn.active {
@@ -89,22 +102,25 @@ h2 {
 
 .tabs {
   display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: 10px;
+  margin-bottom: 18px;
 }
 
 .tab {
   flex: 1;
-  padding: 10px;
+  padding: 14px 10px;
   border: none;
   border-radius: var(--radius);
   background: var(--secondary);
   color: var(--secondary-text);
-  font-weight: 600;
+  font-size: 1rem;
+  font-weight: 700;
   cursor: pointer;
   -webkit-appearance: none;
   appearance: none;
   touch-action: manipulation;
+  min-height: 48px;
+  transition: background 0.15s;
 }
 
 .tab.active {
@@ -115,7 +131,7 @@ h2 {
 .form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
 .form.hidden {
@@ -123,20 +139,22 @@ h2 {
 }
 
 label {
-  font-size: 0.9rem;
-  font-weight: 600;
+  font-size: 0.95rem;
+  font-weight: 700;
   color: var(--muted);
 }
 
 input {
-  padding: 12px 14px;
+  padding: 16px 14px;
   border: 2px solid var(--secondary);
   border-radius: var(--radius);
-  font-size: 1rem;
+  font-size: 1.05rem;
   outline: none;
   transition: border-color 0.15s;
   -webkit-appearance: none;
   appearance: none;
+  min-height: 48px;
+  width: 100%;
 }
 
 input:focus {
@@ -144,19 +162,23 @@ input:focus {
 }
 
 .btn {
-  padding: 12px 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 18px;
   border: none;
   border-radius: var(--radius);
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 1.05rem;
+  font-weight: 700;
   cursor: pointer;
   transition: background 0.15s, transform 0.05s;
   -webkit-appearance: none;
   appearance: none;
   touch-action: manipulation;
-  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
   user-select: none;
   -webkit-user-select: none;
+  min-height: 52px;
+  width: 100%;
 }
 
 .btn:active {
@@ -164,7 +186,7 @@ input:focus {
 }
 
 .btn:disabled {
-  opacity: 0.5;
+  opacity: 0.55;
   cursor: not-allowed;
 }
 
@@ -173,7 +195,8 @@ input:focus {
   color: #fff;
 }
 
-.btn.primary:hover:not(:disabled) {
+.btn.primary:hover:not(:disabled),
+.btn.primary:active:not(:disabled) {
   background: var(--primary-hover);
 }
 
@@ -183,14 +206,16 @@ input:focus {
 }
 
 .btn.small {
-  padding: 8px 12px;
+  padding: 10px 14px;
   font-size: 0.9rem;
+  min-height: 40px;
+  width: auto;
 }
 
 .actions {
   display: flex;
   gap: 12px;
-  margin-top: 16px;
+  margin-top: 18px;
 }
 
 .actions .btn {
@@ -204,20 +229,24 @@ input:focus {
 .room-code-row {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .room-code {
-  font-size: 2rem;
-  font-weight: 800;
-  letter-spacing: 0.15em;
+  font-size: clamp(2rem, 10vw, 3rem);
+  font-weight: 900;
+  letter-spacing: 0.2em;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: var(--text);
 }
 
 .hint {
   margin: 8px 0 0;
   font-size: 0.9rem;
   color: var(--muted);
+  line-height: 1.4;
 }
 
 .player-list {
@@ -230,8 +259,9 @@ input:focus {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 0;
+  padding: 14px 0;
   border-bottom: 1px solid var(--secondary);
+  min-height: 48px;
 }
 
 .player-list li:last-child {
@@ -239,19 +269,19 @@ input:focus {
 }
 
 .player-name {
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 1.05rem;
 }
 
 .player-meta {
   display: flex;
   gap: 8px;
   align-items: center;
-  font-size: 0.85rem;
-  color: var(--muted);
+  font-size: 0.8rem;
 }
 
 .badge {
-  padding: 3px 8px;
+  padding: 4px 10px;
   border-radius: 999px;
   font-size: 0.75rem;
   font-weight: 700;
@@ -279,43 +309,45 @@ html[lang="en"] .badge {
 .role-card {
   text-align: center;
   border: 3px solid var(--primary);
+  padding: 28px 20px;
 }
 
 .role-label {
-  font-size: 0.85rem;
-  font-weight: 700;
+  font-size: 0.9rem;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
   color: var(--muted);
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .role-word {
-  font-size: 2.5rem;
-  font-weight: 800;
-  margin-bottom: 8px;
+  font-size: clamp(2.2rem, 11vw, 3.2rem);
+  font-weight: 900;
+  margin-bottom: 10px;
   word-break: break-word;
 }
 
 .role-hint {
   color: var(--muted);
-  font-size: 0.95rem;
+  font-size: 1rem;
 }
 
 .toast {
   position: fixed;
-  top: 16px;
+  top: max(16px, env(safe-area-inset-top));
   left: 50%;
   transform: translateX(-50%);
   background: var(--danger);
   color: #fff;
-  padding: 12px 20px;
+  padding: 14px 22px;
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   z-index: 100;
-  font-weight: 600;
+  font-weight: 700;
   text-align: center;
   max-width: calc(100% - 32px);
+  font-size: 0.95rem;
 }
 
 .toast.hidden {
@@ -324,4 +356,19 @@ html[lang="en"] .badge {
 
 .toast.info {
   background: var(--primary);
+}
+
+/* Mobile tweaks for very small screens */
+@media (max-width: 360px) {
+  .container {
+    padding: 14px 12px 24px;
+  }
+
+  .card {
+    padding: 16px;
+  }
+
+  .room-code {
+    letter-spacing: 0.15em;
+  }
 }
