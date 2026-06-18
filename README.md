@@ -30,7 +30,7 @@ Open http://localhost:8001/ (host port mapping).
 
 ## Deploy on www.bvshen.com
 
-The app is designed to run behind the same Caddy reverse proxy that serves TradingAgents.
+The app is designed to run behind the `bvshen.com` host app at `/home/bevis/nexus`.
 
 1. On the VPS, clone or pull this repo and start the app on port **8001**:
 
@@ -39,29 +39,15 @@ The app is designed to run behind the same Caddy reverse proxy that serves Tradi
    docker compose -f docker-compose.yml up -d --build
    ```
 
-2. Add the route to the `TradingAgents/Caddyfile`:
-
-   ```caddy
-   handle /who-is-the-undercover/* {
-       uri strip_prefix /who-is-the-undercover
-       reverse_proxy 127.0.0.1:8001 {
-           header_up X-Forwarded-For "{http.request.header.CF-Connecting-IP}"
-           header_up X-Real-IP "{http.request.header.CF-Connecting-IP}"
-       }
-   }
-   ```
-
-3. Copy the updated Caddyfile to the system path and reload Caddy:
+2. The host app already routes `/who-is-the-undercover/*` to `127.0.0.1:8001`. If you
+   need to change the port or add another path, edit `nexus/Caddyfile` and reload:
 
    ```bash
-   sudo cp /home/bevis/TradingAgents/Caddyfile /etc/caddy/Caddyfile
-   sudo /usr/bin/caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
-   sudo systemctl reload caddy
+   cd /home/bevis/nexus
+   docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
    ```
 
-   (If Caddy is running inside Docker in your setup, use `docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile` instead.)
-
-4. Visit `https://www.bvshen.com/who-is-the-undercover/`.
+3. Visit `https://www.bvshen.com/who-is-the-undercover/`.
 
 ## Push to GitHub
 
