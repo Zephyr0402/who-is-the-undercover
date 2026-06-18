@@ -39,6 +39,8 @@
       toastReconnecting: "Connection lost. Trying to reconnect…",
       toastGameStarted: "Game started! Check your card.",
       toastRoomNotFound: "Room not found",
+      toastHostLeft: "Host left. The room has ended.",
+      toastRoomEnded: "The room has ended.",
       errorNameTaken: "That name is already taken in this room",
       errorGameStarted: "Game already started; only existing players can reconnect",
     },
@@ -78,6 +80,8 @@
       toastReconnecting: "连接断开，正在重新连接…",
       toastGameStarted: "游戏开始！查看你的词。",
       toastRoomNotFound: "房间不存在",
+      toastHostLeft: "房主已离开，房间已结束。",
+      toastRoomEnded: "房间已结束。",
       errorNameTaken: "该昵称已被占用",
       errorGameStarted: "游戏已开始，只有原玩家可以重连",
     },
@@ -148,6 +152,7 @@
     roleHint: document.getElementById("role-hint"),
     newRoundBtn: document.getElementById("new-round-btn"),
     leaveBtn: document.getElementById("leave-btn"),
+    lobbyLeaveBtn: document.getElementById("lobby-leave-btn"),
   };
 
   function generateId() {
@@ -388,6 +393,20 @@
       renderGame();
     } else if (data.type === "game_started" || data.type === "new_round") {
       showToast(t("toastGameStarted"), "info");
+    } else if (data.type === "room_ended") {
+      const msg = data.reason === "host_left" ? t("toastHostLeft") : t("toastRoomEnded");
+      showToast(msg);
+      clearSession();
+      state.room = null;
+      state.roomCode = null;
+      state.myRole = null;
+      state.myWord = null;
+      if (state.ws) {
+        state.ws.close();
+        state.ws = null;
+      }
+      setScreen("landing");
+      switchTab("create");
     } else if (data.type === "error") {
       showToast(data.message);
       // If the server tells us the room is gone, stop trying and start over.
@@ -581,6 +600,7 @@
     els.startBtn.addEventListener("click", startGame);
     els.newRoundBtn.addEventListener("click", newRound);
     els.leaveBtn.addEventListener("click", leaveRoom);
+    if (els.lobbyLeaveBtn) els.lobbyLeaveBtn.addEventListener("click", leaveRoom);
     els.copyCode.addEventListener("click", copyCode);
 
     applyLanguage();

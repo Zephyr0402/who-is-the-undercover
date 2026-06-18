@@ -205,6 +205,16 @@ input:focus {
   color: var(--secondary-text);
 }
 
+.btn.danger {
+  background: var(--danger);
+  color: #fff;
+}
+
+.btn.danger:hover:not(:disabled),
+.btn.danger:active:not(:disabled) {
+  background: #dc2626;
+}
+
 .btn.small {
   padding: 10px 14px;
   font-size: 0.9rem;

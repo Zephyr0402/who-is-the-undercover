@@ -614,17 +614,19 @@ async def websocket_endpoint(ws: WebSocket, room_code: str):
                 player.ws = None
                 player.is_online = False
                 room.updated_at = _now()
-                # Transfer host if host left and other players remain.
-                if room.host_id == player_id and len(room.players) > 1:
-                    for other in room.players.values():
-                        if other.id != player_id:
-                            room.host_id = other.id
-                            break
-                await _save_room(room)
-                await _broadcast_state(room)
-            # We no longer delete rooms immediately on disconnect; a background
-            # cleanup task removes old/empty rooms. This prevents a single
-            # player's refresh from wiping their room in the brief offline gap.
+                del room.players[player_id]
+
+                # If the host leaves, end the room for everyone.
+                if room.host_id == player_id:
+                    room.status = "finished"
+                    await _save_room(room)
+                    await _broadcast(room, {"type": "room_ended", "reason": "host_left"})
+                    await _delete_room(room.code)
+                elif len(room.players) == 0:
+                    await _delete_room(room.code)
+                else:
+                    await _save_room(room)
+                    await _broadcast_state(room)
 
 
 @app.get("/api/health")
