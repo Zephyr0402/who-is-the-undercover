@@ -101,7 +101,8 @@
     landing: document.getElementById("landing"),
     lobby: document.getElementById("lobby"),
     game: document.getElementById("game"),
-    langSelect: document.getElementById("lang-select"),
+    langEn: document.getElementById("lang-en"),
+    langZh: document.getElementById("lang-zh"),
     tabCreate: document.getElementById("tab-create"),
     tabJoin: document.getElementById("tab-join"),
     createForm: document.getElementById("create-form"),
@@ -161,8 +162,9 @@
   }
 
   function applyLanguage() {
-    els.langSelect.value = state.lang;
     document.documentElement.lang = state.lang === "zh" ? "zh-CN" : "en";
+    if (els.langEn) els.langEn.classList.toggle("active", state.lang === "en");
+    if (els.langZh) els.langZh.classList.toggle("active", state.lang === "zh");
     document.querySelectorAll("[data-key]").forEach((el) => {
       const key = el.getAttribute("data-key");
       const text = t(key);
@@ -502,9 +504,8 @@
     els.tabCreate.addEventListener("click", () => switchTab("create"));
     els.tabJoin.addEventListener("click", () => switchTab("join"));
 
-    if (els.langSelect) {
-      els.langSelect.addEventListener("change", (e) => setLang(e.target.value));
-    }
+    if (els.langEn) els.langEn.addEventListener("click", () => setLang("en"));
+    if (els.langZh) els.langZh.addEventListener("click", () => setLang("zh"));
 
     els.createForm.addEventListener("submit", (e) => {
       e.preventDefault();

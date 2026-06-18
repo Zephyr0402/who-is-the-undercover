@@ -60,25 +60,31 @@ h2 {
   box-shadow: var(--shadow);
 }
 
-.lang-row {
+.lang-toggle {
   display: flex;
   justify-content: flex-end;
   margin-bottom: 12px;
+  gap: 6px;
 }
 
-.lang-select {
-  padding: 8px 12px;
+.lang-btn {
+  padding: 6px 12px;
   border: 2px solid var(--secondary);
   border-radius: var(--radius);
   background: var(--card);
-  font-size: 0.95rem;
-  color: var(--text);
-  outline: none;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 600;
   cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  touch-action: manipulation;
 }
 
-.lang-select:focus {
+.lang-btn.active {
   border-color: var(--primary);
+  color: var(--primary);
+  background: #eef2ff;
 }
 
 .tabs {
@@ -96,6 +102,9 @@ h2 {
   color: var(--secondary-text);
   font-weight: 600;
   cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  touch-action: manipulation;
 }
 
 .tab.active {
@@ -126,6 +135,8 @@ input {
   font-size: 1rem;
   outline: none;
   transition: border-color 0.15s;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 input:focus {
@@ -140,6 +151,9 @@ input:focus {
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s, transform 0.05s;
+  -webkit-appearance: none;
+  appearance: none;
+  touch-action: manipulation;
 }
 
 .btn:active {
