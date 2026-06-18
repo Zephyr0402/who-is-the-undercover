@@ -500,7 +500,7 @@
     }
   }
 
-  function init() {
+  async function init() {
     els.tabCreate.addEventListener("click", () => switchTab("create"));
     els.tabJoin.addEventListener("click", () => switchTab("join"));
 
