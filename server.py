@@ -56,6 +56,7 @@ class Player:
     is_ready: bool = False
     role: Optional[str] = None  # "civilian" | "undercover"
     word: Optional[str] = None
+    is_voted_out: bool = False
     ws: Optional[WebSocket] = None
     is_online: bool = False
 
@@ -159,6 +160,7 @@ CREATE TABLE IF NOT EXISTS players (
     role        TEXT,
     word        TEXT,
     is_online   INTEGER NOT NULL DEFAULT 0,
+    is_voted_out INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (id, room_code),
     FOREIGN KEY (room_code) REFERENCES rooms(code) ON DELETE CASCADE
 );
@@ -171,11 +173,15 @@ CREATE INDEX IF NOT EXISTS idx_rooms_updated ON rooms(updated_at);
 def init_db() -> None:
     with _db() as conn:
         conn.executescript(SCHEMA)
-        # Migration: add language column to rooms created before this feature.
-        try:
-            conn.execute("ALTER TABLE rooms ADD COLUMN language TEXT NOT NULL DEFAULT 'en'")
-        except sqlite3.OperationalError:
-            pass
+        # Migration: add columns introduced after the original schema.
+        for col_sql in (
+            "ALTER TABLE rooms ADD COLUMN language TEXT NOT NULL DEFAULT 'en'",
+            "ALTER TABLE players ADD COLUMN is_voted_out INTEGER NOT NULL DEFAULT 0",
+        ):
+            try:
+                conn.execute(col_sql)
+            except sqlite3.OperationalError:
+                pass
 
 
 def _room_to_row(room: Room) -> tuple:
@@ -201,6 +207,7 @@ def _player_to_row(player: Player, room_code: str) -> tuple:
         player.role,
         player.word,
         int(player.is_online),
+        int(player.is_voted_out),
     )
 
 
@@ -229,8 +236,8 @@ async def _save_room(room: Room) -> None:
             conn.execute("DELETE FROM players WHERE room_code = ?", (room.code,))
             conn.executemany(
                 """
-                INSERT INTO players (id, room_code, name, is_ready, role, word, is_online)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO players (id, room_code, name, is_ready, role, word, is_online, is_voted_out)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 [_player_to_row(p, room.code) for p in room.players.values()],
             )
@@ -276,6 +283,7 @@ async def _load_all_rooms() -> None:
                 is_ready=bool(p["is_ready"]),
                 role=p["role"],
                 word=p["word"],
+                is_voted_out=bool(p.get("is_voted_out", 0)),
                 is_online=False,  # sockets are gone on restart
             )
             room.players[p["id"]] = player
@@ -331,13 +339,19 @@ def _get_or_create_lock(code: str) -> asyncio.Lock:
 
 
 def _public_player_for_room(player: Player, room: Room) -> dict:
-    return {
+    data = {
         "id": player.id,
         "name": player.name,
         "is_ready": player.is_ready,
         "is_online": player.is_online,
         "is_host": player.id == room.host_id,
+        "is_voted_out": player.is_voted_out,
     }
+    # Only reveal a player's role after they have been voted out.
+    if player.is_voted_out:
+        data["role"] = player.role
+        data["word"] = player.word
+    return data
 
 
 def _public_room_state(room: Room) -> dict:
@@ -374,11 +388,12 @@ async def _broadcast_state(room: Room) -> None:
 
 
 async def _send_private_role(player: Player) -> None:
+    # Players know their word but not their role label. The host reveals
+    # identities by voting a player out.
     await _send(
         player.ws,
         {
-            "type": "your_role",
-            "role": player.role,
+            "type": "your_word",
             "word": player.word,
         },
     )
@@ -410,6 +425,7 @@ def _reset_room_for_new_round(room: Room) -> None:
         player.role = None
         player.word = None
         player.is_ready = False
+        player.is_voted_out = False
     room.status = "waiting"
     room.word_pair = None
     room.undercover_ids = set()
@@ -634,6 +650,37 @@ async def websocket_endpoint(ws: WebSocket, room_code: str):
                     await _broadcast_state(room)
                     for p in room.players.values():
                         await _send_private_role(p)
+
+                elif msg_type == "vote_out":
+                    if player.id != room.host_id:
+                        await _send(ws, {"type": "error", "message": "Only the host can vote a player out"})
+                        continue
+                    if room.status != "playing":
+                        await _send(ws, {"type": "error", "message": "Game is not in progress"})
+                        continue
+                    target_id = data.get("player_id", "").strip()
+                    target = room.players.get(target_id)
+                    if not target:
+                        await _send(ws, {"type": "error", "message": "Player not found"})
+                        continue
+                    if target.is_voted_out:
+                        await _send(ws, {"type": "error", "message": "Player already voted out"})
+                        continue
+                    target.is_voted_out = True
+                    room.updated_at = _now()
+                    await _save_room(room)
+                    await _broadcast(
+                        room,
+                        {
+                            "type": "player_revealed",
+                            "player_id": target.id,
+                            "name": target.name,
+                            "role": target.role,
+                            "is_undercover": target.role == "undercover",
+                            "word": target.word,
+                        },
+                    )
+                    await _broadcast_state(room)
 
                 elif msg_type == "leave":
                     break

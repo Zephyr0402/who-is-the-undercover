@@ -316,6 +316,16 @@ html[lang="en"] .badge {
   color: var(--muted);
 }
 
+.badge.voted-out {
+  background: var(--danger);
+  color: #fff;
+}
+
+.badge.revealed {
+  background: var(--accent);
+  color: #fff;
+}
+
 .role-card {
   text-align: center;
   border: 3px solid var(--primary);

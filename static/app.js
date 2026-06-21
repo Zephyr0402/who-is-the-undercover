@@ -44,6 +44,12 @@
       toastRoomNotFound: "Room not found",
       toastHostLeft: "Host left. The room has ended.",
       toastRoomEnded: "The room has ended.",
+      toastRevealedCivilian: "{name} was a Civilian! Word: {word}",
+      toastRevealedUndercover: "{name} was the Undercover! Word: {word}",
+      badgeVotedOut: "Out",
+      badgeRevealedUndercover: "Undercover",
+      badgeRevealedCivilian: "Civilian",
+      btnVoteOut: "Vote out",
       errorWrongLanguage: 'This room uses {lang}. Please switch the language to {lang} in the top-right corner before joining.',
       errorNameTaken: "That name is already taken in this room",
       errorGameStarted: "Game already started; only existing players can reconnect",
@@ -89,6 +95,12 @@
       toastRoomNotFound: "房间不存在",
       toastHostLeft: "房主已离开，房间已结束。",
       toastRoomEnded: "房间已结束。",
+      toastRevealedCivilian: "{name} 是平民！词：{word}",
+      toastRevealedUndercover: "{name} 是卧底！词：{word}",
+      badgeVotedOut: "出局",
+      badgeRevealedUndercover: "卧底",
+      badgeRevealedCivilian: "平民",
+      btnVoteOut: "投票出局",
       errorWrongLanguage: '本房间使用{lang}语言，请先在右上角切换为{lang}再加入。',
       errorNameTaken: "该昵称已被占用",
       errorGameStarted: "游戏已开始，只有原玩家可以重连",
@@ -345,21 +357,14 @@
     if (!state.room) return;
     const me = state.room.players.find((p) => p.id === state.playerId);
 
+    // Players see only their own word, never their role label.
     els.roleWord.textContent = state.myWord || "?";
-    if (state.myRole === "undercover") {
-      els.roleLabel.textContent = t("roleUndercover");
-      els.roleHint.textContent = t("hintUndercover");
-      document.querySelector(".role-card").style.borderColor = "var(--accent)";
-    } else if (state.myRole === "civilian") {
-      els.roleLabel.textContent = t("roleCivilian");
-      els.roleHint.textContent = t("hintCivilian");
-      document.querySelector(".role-card").style.borderColor = "var(--success)";
-    } else {
-      els.roleLabel.textContent = "…";
-      els.roleHint.textContent = t("hintWaitingRole");
-    }
+    els.roleLabel.textContent = t("labelYourWord");
+    els.roleHint.textContent = t("hintWaitingRole");
+    document.querySelector(".role-card").style.borderColor = "var(--primary)";
 
     state.isHost = state.playerId === state.room.host_id;
+    const canVote = state.isHost && state.room.status === "playing";
     els.newRoundBtn.classList.toggle("hidden", !state.isHost);
 
     els.gamePlayerList.innerHTML = state.room.players
@@ -367,14 +372,32 @@
         const badges = [];
         if (p.is_host) badges.push(`<span class="badge host">${t("badgeHost")}</span>`);
         if (!p.is_online) badges.push(`<span class="badge offline">${t("badgeOffline")}</span>`);
+        if (p.is_voted_out) badges.push(`<span class="badge voted-out">${t("badgeVotedOut")}</span>`);
+        if (p.is_voted_out) {
+          const roleKey = p.role === "undercover" ? "badgeRevealedUndercover" : "badgeRevealedCivilian";
+          badges.push(`<span class="badge revealed">${t(roleKey)}</span>`);
+        }
+        const voteButton =
+          canVote && !p.is_voted_out && p.id !== state.playerId
+            ? `<button type="button" class="btn small danger vote-out" data-player-id="${escapeHtml(p.id)}">${t("btnVoteOut")}</button>`
+            : "";
+        const dimmed = p.is_voted_out ? ' style="opacity:0.55"' : "";
         return `
-          <li>
+          <li${dimmed}>
             <span class="player-name">${escapeHtml(p.name)} ${p.id === state.playerId ? `(${t("you")})` : ""}</span>
-            <span class="player-meta">${badges.join("")}</span>
+            <span class="player-meta">${badges.join("")}${voteButton}</span>
           </li>
         `;
       })
       .join("");
+
+    // Bind vote-out buttons (re-created on every render).
+    els.gamePlayerList.querySelectorAll(".vote-out").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const targetId = btn.getAttribute("data-player-id");
+        if (targetId) send("vote_out", { player_id: targetId });
+      });
+    });
   }
 
   function escapeHtml(text) {
@@ -398,11 +421,15 @@
         setScreen("game");
         renderGame();
       }
-    } else if (data.type === "your_role") {
-      state.myRole = data.role;
+    } else if (data.type === "your_word") {
+      // Only the word is shown; role identity is hidden until voted out.
       state.myWord = data.word;
       setScreen("game");
       renderGame();
+    } else if (data.type === "player_revealed") {
+      const isUndercover = data.is_undercover || data.role === "undercover";
+      const tmpl = isUndercover ? "toastRevealedUndercover" : "toastRevealedCivilian";
+      showToast(t(tmpl).replace(/\{name\}/g, escapeHtml(data.name)).replace(/\{word\}/g, escapeHtml(data.word)));
     } else if (data.type === "game_started" || data.type === "new_round") {
       showToast(t("toastGameStarted"), "info");
     } else if (data.type === "room_ended") {
