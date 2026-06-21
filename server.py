@@ -283,7 +283,7 @@ async def _load_all_rooms() -> None:
                 is_ready=bool(p["is_ready"]),
                 role=p["role"],
                 word=p["word"],
-                is_voted_out=bool(p.get("is_voted_out", 0)),
+                is_voted_out=bool(p["is_voted_out"] if "is_voted_out" in p.keys() else 0),
                 is_online=False,  # sockets are gone on restart
             )
             room.players[p["id"]] = player
@@ -347,10 +347,12 @@ def _public_player_for_room(player: Player, room: Room) -> dict:
         "is_host": player.id == room.host_id,
         "is_voted_out": player.is_voted_out,
     }
-    # Only reveal a player's role after they have been voted out.
+    # Only reveal a voted-out player's word when they were the undercover.
+    # Civilians' words stay secret.
     if player.is_voted_out:
         data["role"] = player.role
-        data["word"] = player.word
+        if player.role == "undercover":
+            data["word"] = player.word
     return data
 
 
@@ -691,17 +693,17 @@ async def websocket_endpoint(ws: WebSocket, room_code: str):
                                 break
                     room.updated_at = _now()
                     await _save_room(room)
-                    await _broadcast(
-                        room,
-                        {
-                            "type": "player_revealed",
-                            "player_id": target.id,
-                            "name": target.name,
-                            "role": target.role,
-                            "is_undercover": target.role == "undercover",
-                            "word": target.word,
-                        },
-                    )
+                    # Reveal the word only if the voted-out player was the undercover.
+                    reveal_payload = {
+                        "type": "player_revealed",
+                        "player_id": target.id,
+                        "name": target.name,
+                        "role": target.role,
+                        "is_undercover": target.role == "undercover",
+                    }
+                    if target.role == "undercover":
+                        reveal_payload["word"] = target.word
+                    await _broadcast(room, reveal_payload)
                     await _broadcast_state(room)
 
                 elif msg_type == "ping":

@@ -44,8 +44,8 @@
       toastRoomNotFound: "Room not found",
       toastHostLeft: "Host left. The room has ended.",
       toastRoomEnded: "The room has ended.",
-      toastRevealedCivilian: "{name} was a Civilian! Word: {word}",
-      toastRevealedUndercover: "{name} was the Undercover! Word: {word}",
+      toastRevealedCivilian: "{name} was a Civilian!",
+      toastRevealedUndercover: "{name} was the Undercover! {word}",
       badgeVotedOut: "Out",
       badgeRevealedUndercover: "Undercover",
       badgeRevealedCivilian: "Civilian",
@@ -95,8 +95,8 @@
       toastRoomNotFound: "房间不存在",
       toastHostLeft: "房主已离开，房间已结束。",
       toastRoomEnded: "房间已结束。",
-      toastRevealedCivilian: "{name} 是平民！词：{word}",
-      toastRevealedUndercover: "{name} 是卧底！词：{word}",
+      toastRevealedCivilian: "{name} 是平民！",
+      toastRevealedUndercover: "{name} 是卧底！{word}",
       badgeVotedOut: "出局",
       badgeRevealedUndercover: "卧底",
       badgeRevealedCivilian: "平民",
@@ -434,7 +434,8 @@
     } else if (data.type === "player_revealed") {
       const isUndercover = data.is_undercover || data.role === "undercover";
       const tmpl = isUndercover ? "toastRevealedUndercover" : "toastRevealedCivilian";
-      showToast(t(tmpl).replace(/\{name\}/g, escapeHtml(data.name)).replace(/\{word\}/g, escapeHtml(data.word)));
+      const word = data.word ? `Word: ${escapeHtml(data.word)}` : "";
+      showToast(t(tmpl).replace(/\{name\}/g, escapeHtml(data.name)).replace(/\{word\}/g, word));
     } else if (data.type === "game_started" || data.type === "new_round") {
       showToast(t("toastGameStarted"), "info");
     } else if (data.type === "room_ended") {
