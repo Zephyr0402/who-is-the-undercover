@@ -378,7 +378,7 @@
           badges.push(`<span class="badge revealed">${t(roleKey)}</span>`);
         }
         const voteButton =
-          canVote && !p.is_voted_out && p.id !== state.playerId
+          canVote && !p.is_voted_out
             ? `<button type="button" class="btn small danger vote-out" data-player-id="${escapeHtml(p.id)}">${t("btnVoteOut")}</button>`
             : "";
         const dimmed = p.is_voted_out ? ' style="opacity:0.55"' : "";
@@ -410,6 +410,11 @@
     if (data.type === "room_state") {
       state.room = data.room;
       state.isHost = state.playerId === state.room.host_id;
+      // The server attaches the player's own word to room_state when playing,
+      // so reconnects/refresh immediately show the word instead of "?".
+      if (data.your_word) {
+        state.myWord = data.your_word;
+      }
       // Sync UI language with the room language determined by the host.
       if (state.room.language && state.room.language !== state.lang) {
         setLang(state.room.language);

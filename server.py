@@ -384,7 +384,13 @@ async def _broadcast(room: Room, message: dict, exclude: Optional[set[str]] = No
 
 
 async def _broadcast_state(room: Room) -> None:
-    await _broadcast(room, {"type": "room_state", "room": _public_room_state(room)})
+    # Each player gets the public room state plus their own word when playing,
+    # so reconnects/refresh never leave a player staring at a "?".
+    for pid, player in room.players.items():
+        payload = {"type": "room_state", "room": _public_room_state(room)}
+        if room.status == "playing" and player.word:
+            payload["your_word"] = player.word
+        await _send(player.ws, payload)
 
 
 async def _send_private_role(player: Player) -> None:
@@ -667,6 +673,13 @@ async def websocket_endpoint(ws: WebSocket, room_code: str):
                         await _send(ws, {"type": "error", "message": "Player already voted out"})
                         continue
                     target.is_voted_out = True
+                    # If the host votes themselves out, transfer host to the
+                    # next active player so the game can continue.
+                    if target.id == room.host_id:
+                        for other in room.players.values():
+                            if other.id != target.id and not other.is_voted_out:
+                                room.host_id = other.id
+                                break
                     room.updated_at = _now()
                     await _save_room(room)
                     await _broadcast(
