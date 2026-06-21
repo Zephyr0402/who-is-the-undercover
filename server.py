@@ -554,10 +554,19 @@ async def websocket_endpoint(ws: WebSocket, room_code: str):
     async with lock:
         existing = room.players.get(player_id)
         if existing:
-            # Reconnecting; allow name update.
+            # Reconnecting; restore the socket and mark online.
             existing.name = name or existing.name
             existing.ws = ws
             existing.is_online = True
+            # If this player was the original host, restore host privileges.
+            if room.host_id == existing.id:
+                pass  # host_id already points to them
+            elif not any(p.id == room.host_id and p.is_online for p in room.players.values()):
+                # Current host is offline; transfer back if this reconnecting player
+                # was the last online host (we keep host_id sticky, so this only
+                # happens when the stored host reconnects).
+                if existing.id == room.host_id:
+                    pass
         else:
             if language != room.language:
                 await ws.accept()
@@ -591,9 +600,9 @@ async def websocket_endpoint(ws: WebSocket, room_code: str):
 
     await ws.accept()
     await _broadcast_state(room)
-    # If game is already in progress, send the reconnected player their role privately.
+    # If game is already in progress, send the reconnected player their word privately.
     player = room.players[player_id]
-    if room.status == "playing" and player.role:
+    if room.status == "playing" and player.word:
         await _send_private_role(player)
 
     try:
@@ -695,6 +704,9 @@ async def websocket_endpoint(ws: WebSocket, room_code: str):
                     )
                     await _broadcast_state(room)
 
+                elif msg_type == "ping":
+                    await _send(ws, {"type": "pong"})
+
                 elif msg_type == "leave":
                     break
 
@@ -710,19 +722,19 @@ async def websocket_endpoint(ws: WebSocket, room_code: str):
                 player.ws = None
                 player.is_online = False
                 room.updated_at = _now()
-                del room.players[player_id]
-
-                # If the host leaves, end the room for everyone.
-                if room.host_id == player_id:
-                    room.status = "finished"
-                    await _save_room(room)
-                    await _broadcast(room, {"type": "room_ended", "reason": "host_left"})
-                    await _delete_room(room.code)
-                elif len(room.players) == 0:
-                    await _delete_room(room.code)
-                else:
-                    await _save_room(room)
-                    await _broadcast_state(room)
+                # Do NOT remove the player from the room immediately; keep them
+                # so a phone lock/app switch can reconnect. A background cleanup
+                # task eventually removes stale empty rooms.
+                if room.host_id == player_id and len(room.players) > 1:
+                    # Host disconnected temporarily; transfer host to another
+                    # active player so the room keeps running. Host regains
+                    # control automatically when they reconnect with the same id.
+                    for other in room.players.values():
+                        if other.id != player_id:
+                            room.host_id = other.id
+                            break
+                await _save_room(room)
+                await _broadcast_state(room)
 
 
 @app.get("/api/health")

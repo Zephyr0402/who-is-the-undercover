@@ -476,7 +476,9 @@
 
   function connectWS(code, playerId, name) {
     if (state.ws) {
+      if (state.ws.__cleanup) state.ws.__cleanup();
       state.ws.close();
+      state.ws = null;
     }
 
     const url = wsUrl(`/ws/${code}?player_id=${encodeURIComponent(playerId)}&name=${encodeURIComponent(name)}&language=${encodeURIComponent(state.lang)}`);
@@ -496,13 +498,14 @@
     };
 
     let reconnectAttempts = 0;
-    const maxReconnects = 3;
+    const maxReconnects = 20;
+    let reconnectTimer = null;
 
-    state.ws.onclose = () => {
-      state.ws = null;
-    };
-
-    state.ws.onerror = () => {
+    function doReconnect() {
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+      }
       reconnectAttempts++;
       if (reconnectAttempts > maxReconnects) {
         showToast(t("toastRoomNotFound"));
@@ -516,9 +519,44 @@
         return;
       }
       showToast(t("toastReconnecting"));
-      setTimeout(() => {
-        if (state.roomCode) connectWS(state.roomCode, state.playerId, state.name);
-      }, 1500);
+      reconnectTimer = setTimeout(() => {
+        if (state.roomCode && state.playerId && state.name) {
+          connectWS(state.roomCode, state.playerId, state.name);
+        }
+      }, Math.min(1000 + reconnectAttempts * 500, 5000));
+    }
+
+    state.ws.onclose = (event) => {
+      state.ws = null;
+      // Normal close (event.wasClean === true without error) usually means the
+      // user left the room manually. Otherwise try to reconnect.
+      if (!event.wasClean) {
+        doReconnect();
+      }
+    };
+
+    state.ws.onerror = () => {
+      // Let onclose handle reconnection, but make sure we don't double-trigger.
+      if (state.ws) {
+        state.ws.close();
+        state.ws = null;
+      }
+    };
+
+    // Heartbeat to keep connection alive through short phone sleeps / app switches.
+    const heartbeat = setInterval(() => {
+      if (state.ws && state.ws.readyState === WebSocket.OPEN) {
+        try {
+          state.ws.send(JSON.stringify({ type: "ping" }));
+        } catch {
+          // Let onclose handle reconnect.
+        }
+      }
+    }, 15000);
+
+    state.ws.__cleanup = () => {
+      clearInterval(heartbeat);
+      if (reconnectTimer) clearTimeout(reconnectTimer);
     };
   }
 
