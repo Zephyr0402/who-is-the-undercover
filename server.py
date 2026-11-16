@@ -30,6 +30,10 @@ from pydantic import BaseModel, Field
 # ---------------------------------------------------------------------------
 
 STATIC_DIR = Path(__file__).parent / "static"
+# Static export of the Expo (React Native) app, produced by `npm run export:web`.
+# When present it replaces the legacy vanilla-JS client in static/.
+WEB_DIR = Path(os.environ.get("WIU_WEB_DIR", Path(__file__).parent / "mobile" / "dist"))
+WEB_BUILD_AVAILABLE = (WEB_DIR / "index.html").exists()
 WORDS_FILE = Path(__file__).parent / "words.json"
 DATA_DIR = Path(os.environ.get("WIU_DATA_DIR", Path(__file__).parent / "data"))
 DB_FILE = DATA_DIR / "rooms.db"
@@ -478,12 +482,15 @@ app.add_middleware(
 )
 
 
-@app.get("/", include_in_schema=False)
-async def index():
-    return FileResponse(STATIC_DIR / "index.html")
+# Legacy client fallback. The Expo web build is mounted at "/" after the API
+# and WebSocket routes are registered (see the bottom of this module).
+if not WEB_BUILD_AVAILABLE:
 
+    @app.get("/", include_in_schema=False)
+    async def index():
+        return FileResponse(STATIC_DIR / "index.html")
 
-app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
 # ---------------------------------------------------------------------------
@@ -743,3 +750,9 @@ async def websocket_endpoint(ws: WebSocket, room_code: str):
 async def health():
     total_words = sum(len(v) for v in WORD_PAIRS.values())
     return {"ok": True, "rooms": len(rooms), "words": total_words}
+
+
+# Mount the Expo web export last so /api/* and /ws/* keep matching first.
+# `html=True` serves index.html for "/" and any directory index.
+if WEB_BUILD_AVAILABLE:
+    app.mount("/", StaticFiles(directory=WEB_DIR, html=True), name="web")

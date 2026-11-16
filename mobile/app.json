@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "Who Is The Undercover",
+    "slug": "who-is-the-undercover",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "undercover",
+    "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
+    "ios": {
+      "bundleIdentifier": "com.bvshen.undercover",
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsLocalNetworking": true
+        }
+      }
+    },
+    "android": {
+      "package": "com.bvshen.undercover"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}

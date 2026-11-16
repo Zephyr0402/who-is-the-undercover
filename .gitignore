@@ -12,3 +12,11 @@ venv/
 *.log
 .pytest_cache/
 data/
+
+# Expo / React Native
+mobile/node_modules/
+mobile/dist/
+mobile/.expo/
+mobile/.env
+mobile/ios/
+mobile/android/

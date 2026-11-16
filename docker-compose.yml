@@ -1,10 +1,16 @@
 services:
   undercover:
-    build: .
+    build:
+      context: .
+      args:
+        # The production site is reverse-proxied by Caddy at
+        # /who-is-the-undercover/ with the prefix stripped, so the exported
+        # bundle must prefix its own asset URLs. Override for plain-root local
+        # testing:  WIU_WEB_BASE_URL= docker compose up --build
+        WIU_WEB_BASE_URL: ${WIU_WEB_BASE_URL-/who-is-the-undercover}
     ports:
       - "127.0.0.1:8001:8000"
     volumes:
-      - ./static:/home/appuser/app/static:ro
       - undercover_data:/home/appuser/app/data
     restart: unless-stopped
 
