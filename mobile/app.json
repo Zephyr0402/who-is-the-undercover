@@ -9,8 +9,10 @@
     "icon": "./assets/icon.png",
     "ios": {
       "bundleIdentifier": "com.bvshen.undercover",
-      "supportsTablet": true,
+      "buildNumber": "1",
+      "supportsTablet": false,
       "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
         "NSAppTransportSecurity": {
           "NSAllowsLocalNetworking": true
         }

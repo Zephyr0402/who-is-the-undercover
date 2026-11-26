@@ -11,6 +11,8 @@ import {
   SafeAreaView,
 } from "react-native-safe-area-context";
 
+import { AuroraBackground } from "./components/AuroraBackground";
+import { GlassSurface } from "./components/GlassSurface";
 import { ToastBanner } from "./components/ToastBanner";
 import { t } from "./i18n";
 import { GameScreen } from "./screens/GameScreen";
@@ -28,12 +30,19 @@ function Root() {
       style={styles.root}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
+      <AuroraBackground />
       <SafeAreaView style={styles.safeArea} edges={["top", "right", "bottom", "left"]}>
         <View style={styles.container}>
-          <View style={styles.header}>
+          <GlassSurface
+            radius={24}
+            intensity={35}
+            tintColor="rgba(255, 255, 255, 0.42)"
+            style={styles.header}
+            contentStyle={styles.headerContent}
+          >
             <Text style={styles.title}>🕵️ {t(game.lang, "appTitle")}</Text>
             <Text style={styles.subtitle}>{t(game.lang, "appSubtitle")}</Text>
-          </View>
+          </GlassSurface>
 
           {room ? (
             room.status === "waiting" ? (
@@ -89,7 +98,6 @@ const styles = StyleSheet.create({
   },
   safeArea: {
     flex: 1,
-    backgroundColor: colors.bg,
   },
   container: {
     flex: 1,
@@ -97,22 +105,31 @@ const styles = StyleSheet.create({
     maxWidth: 560,
     alignSelf: "center",
     paddingHorizontal: 16,
-    paddingTop: 8,
+    paddingTop: 6,
   },
   header: {
+    marginBottom: 14,
+    shadowColor: "#000000",
+    shadowOpacity: 0.07,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+  },
+  headerContent: {
     alignItems: "center",
-    paddingTop: 8,
-    paddingBottom: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   title: {
-    fontSize: 28,
-    fontWeight: "800",
+    fontSize: 21,
+    fontWeight: "700",
     color: colors.text,
     textAlign: "center",
+    letterSpacing: 0.1,
   },
   subtitle: {
-    marginTop: 6,
-    fontSize: 15,
+    marginTop: 3,
+    fontSize: 12,
+    fontWeight: "400",
     color: colors.muted,
     textAlign: "center",
   },

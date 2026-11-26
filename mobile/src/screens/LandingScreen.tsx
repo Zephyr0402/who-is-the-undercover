@@ -1,17 +1,11 @@
 import { useState } from "react";
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 
 import { AppButton } from "../components/AppButton";
 import { Card } from "../components/Card";
+import { SegmentedControl } from "../components/SegmentedControl";
 import { TextField } from "../components/TextField";
 import { t } from "../i18n";
-import { colors, radius } from "../theme";
 import type { Lang } from "../types";
 import { sanitizeCode } from "../useUndercover";
 
@@ -59,47 +53,29 @@ export function LandingScreen({
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
     >
-      <Card>
-        <View style={styles.langRow}>
-          {(["en", "zh"] as const).map((option) => (
-            <Pressable
-              key={option}
-              accessibilityRole="button"
-              accessibilityState={{ selected: lang === option }}
-              onPress={() => changeLang(option)}
-              style={[styles.langButton, lang === option && styles.langButtonActive]}
-            >
-              <Text
-                style={[styles.langText, lang === option && styles.langTextActive]}
-              >
-                {option === "en" ? t(lang, "langEn") : t(lang, "langZh")}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+      <View style={styles.langRow}>
+        <SegmentedControl
+          compact
+          options={[
+            { value: "en" as const, label: t(lang, "langEn") },
+            { value: "zh" as const, label: t(lang, "langZh") },
+          ]}
+          value={lang}
+          onChange={changeLang}
+          style={styles.langControl}
+        />
+      </View>
 
-        <View style={styles.tabs}>
-          <Pressable
-            accessibilityRole="tab"
-            accessibilityState={{ selected: tab === "create" }}
-            onPress={() => setTab("create")}
-            style={[styles.tab, tab === "create" && styles.tabActive]}
-          >
-            <Text style={[styles.tabText, tab === "create" && styles.tabTextActive]}>
-              {t(lang, "tabCreate")}
-            </Text>
-          </Pressable>
-          <Pressable
-            accessibilityRole="tab"
-            accessibilityState={{ selected: tab === "join" }}
-            onPress={() => setTab("join")}
-            style={[styles.tab, tab === "join" && styles.tabActive]}
-          >
-            <Text style={[styles.tabText, tab === "join" && styles.tabTextActive]}>
-              {t(lang, "tabJoin")}
-            </Text>
-          </Pressable>
-        </View>
+      <Card>
+        <SegmentedControl
+          options={[
+            { value: "create" as const, label: t(lang, "tabCreate") },
+            { value: "join" as const, label: t(lang, "tabJoin") },
+          ]}
+          value={tab}
+          onChange={setTab}
+          style={styles.tabs}
+        />
 
         {tab === "create" ? (
           <View>
@@ -159,60 +135,19 @@ export function LandingScreen({
 
 const styles = StyleSheet.create({
   content: {
-    paddingBottom: 32,
+    flexGrow: 1,
+    justifyContent: "center",
+    paddingBottom: 24,
   },
   langRow: {
     flexDirection: "row",
     justifyContent: "flex-end",
-    gap: 8,
     marginBottom: 12,
   },
-  langButton: {
-    minHeight: 38,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 999,
-    borderWidth: 2,
-    borderColor: colors.secondary,
-    backgroundColor: colors.card,
-  },
-  langButtonActive: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primarySoft,
-  },
-  langText: {
-    color: colors.muted,
-    fontSize: 15,
-    fontWeight: "700",
-  },
-  langTextActive: {
-    color: colors.primary,
+  langControl: {
+    width: 148,
   },
   tabs: {
-    flexDirection: "row",
-    gap: 10,
     marginBottom: 18,
-  },
-  tab: {
-    flex: 1,
-    minHeight: 48,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: radius,
-    backgroundColor: colors.secondary,
-    paddingHorizontal: 10,
-    paddingVertical: 14,
-  },
-  tabActive: {
-    backgroundColor: colors.primary,
-  },
-  tabText: {
-    color: colors.secondaryText,
-    fontSize: 16,
-    fontWeight: "700",
-    textAlign: "center",
-  },
-  tabTextActive: {
-    color: colors.white,
   },
 });

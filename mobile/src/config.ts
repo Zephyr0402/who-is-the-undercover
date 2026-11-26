@@ -1,5 +1,8 @@
 import Constants from "expo-constants";
 import { Platform } from "react-native";
+// Deep import: react-native has no public API for the dev server URL, and
+// NativeModules.SourceCode is unavailable under the New Architecture.
+import getDevServer from "react-native/Libraries/Core/Devtools/getDevServer";
 
 // Expo inlines EXPO_PUBLIC_* variables at build time; declare the minimal
 // shape so TypeScript does not require @types/node.
@@ -32,16 +35,24 @@ function webBaseUrl(): string {
   return stripTrailingSlash(path);
 }
 
+/** Host of the Metro server, e.g. "192.168.1.88". */
+function packagerHost(): string | null {
+  if (!__DEV__) {
+    return null;
+  }
+  const match = /^https?:\/\/([^/:?#]+)/.exec(getDevServer().url);
+  return match?.[1] ?? null;
+}
+
 function nativeBaseUrl(): string {
   if (__DEV__) {
     // Derive the dev machine's LAN address from the Expo dev server so the app
-    // also works on a physical iPhone.
+    // also works on a physical iPhone. Expo Go exposes hostUri; bare dev builds
+    // created by `expo run:ios` only expose the JS bundle URL.
     const hostUri = Constants.expoConfig?.hostUri;
-    if (hostUri) {
-      const host = hostUri.split(":")[0];
-      if (host) {
-        return `http://${host}:${DEV_BACKEND_PORT}`;
-      }
+    const host = hostUri ? hostUri.split(":")[0] : packagerHost();
+    if (host) {
+      return `http://${host}:${DEV_BACKEND_PORT}`;
     }
     return `http://localhost:${DEV_BACKEND_PORT}`;
   }

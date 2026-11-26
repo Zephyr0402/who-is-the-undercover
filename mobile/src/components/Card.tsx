@@ -1,22 +1,41 @@
 import type { PropsWithChildren } from "react";
-import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
+import { StyleSheet, type StyleProp, type ViewStyle } from "react-native";
 
-import { cardShadow, colors, radius } from "../theme";
+import { radius, softShadow } from "../theme";
+import { GlassSurface } from "./GlassSurface";
 
 interface CardProps {
   style?: StyleProp<ViewStyle>;
+  contentStyle?: StyleProp<ViewStyle>;
+  /** Optional tint for highlighted cards (room code, secret word). */
+  tintColor?: string;
 }
 
-export function Card({ children, style }: PropsWithChildren<CardProps>) {
-  return <View style={[styles.card, style]}>{children}</View>;
+export function Card({
+  children,
+  style,
+  contentStyle,
+  tintColor,
+}: PropsWithChildren<CardProps>) {
+  return (
+    <GlassSurface
+      radius={radius}
+      intensity={40}
+      tintColor={tintColor}
+      style={[styles.card, style]}
+      contentStyle={[styles.content, contentStyle]}
+    >
+      {children}
+    </GlassSurface>
+  );
 }
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.card,
-    borderRadius: radius,
-    padding: 18,
     marginBottom: 14,
-    ...cardShadow,
+    ...softShadow,
+  },
+  content: {
+    padding: 20,
   },
 });

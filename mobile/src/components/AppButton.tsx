@@ -2,11 +2,13 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  View,
   type StyleProp,
   type ViewStyle,
 } from "react-native";
 
-import { colors, radius } from "../theme";
+import { colors, radiusPill } from "../theme";
+import { GlassSurface } from "./GlassSurface";
 
 type Variant = "primary" | "secondary" | "danger";
 
@@ -32,6 +34,48 @@ export function AppButton({
   accessibilityLabel,
 }: AppButtonProps) {
   const inactive = disabled || loading;
+  const text = loading ? "…" : label;
+  const buttonRadius = small ? radiusPill : 14;
+
+  const pressableStyle = ({ pressed }: { pressed: boolean }) => [
+    small ? styles.smallWrap : styles.fullWrap,
+    pressed && !inactive ? styles.pressed : null,
+    inactive ? styles.inactive : null,
+    style,
+  ];
+
+  if (variant === "primary") {
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel ?? label}
+        accessibilityState={{ disabled: inactive, busy: loading }}
+        disabled={inactive}
+        onPress={onPress}
+        style={pressableStyle}
+      >
+        <View
+          style={[
+            styles.solid,
+            { borderRadius: buttonRadius },
+            small ? styles.smallContent : styles.content,
+          ]}
+        >
+          <Text
+            style={[
+              styles.label,
+              small ? styles.smallLabel : null,
+              styles.primaryLabel,
+            ]}
+          >
+            {text}
+          </Text>
+        </View>
+      </Pressable>
+    );
+  }
+
+  const isDanger = variant === "danger";
 
   return (
     <Pressable
@@ -40,62 +84,80 @@ export function AppButton({
       accessibilityState={{ disabled: inactive, busy: loading }}
       disabled={inactive}
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.base,
-        small ? styles.small : styles.full,
-        variantStyles[variant].container,
-        pressed && !inactive && variantStyles[variant].pressed,
-        inactive && styles.inactive,
-        style,
-      ]}
+      style={pressableStyle}
     >
-      <Text style={[styles.label, variantStyles[variant].label]}>
-        {loading ? "…" : label}
-      </Text>
+      <GlassSurface
+        radius={buttonRadius}
+        tintColor={
+          isDanger ? "rgba(255, 59, 48, 0.12)" : "rgba(255, 255, 255, 0.62)"
+        }
+        interactive={!inactive}
+        intensity={40}
+        style={styles.fill}
+        contentStyle={small ? styles.smallContent : styles.content}
+      >
+        <Text
+          style={[
+            styles.label,
+            small ? styles.smallLabel : null,
+            { color: isDanger ? colors.danger : colors.secondaryText },
+          ]}
+        >
+          {text}
+        </Text>
+      </GlassSurface>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  base: {
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: radius,
-    minHeight: 52,
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-  },
-  full: {
+  fullWrap: {
     width: "100%",
   },
-  small: {
-    minHeight: 40,
+  smallWrap: {
+    alignSelf: "flex-start",
+  },
+  fill: {
+    alignSelf: "stretch",
+  },
+  solid: {
+    alignSelf: "stretch",
+    backgroundColor: colors.primary,
+    shadowColor: "#000000",
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+  },
+  content: {
+    minHeight: 50,
+    paddingHorizontal: 20,
+    paddingVertical: 13,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  smallContent: {
+    minHeight: 34,
     paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingVertical: 6,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pressed: {
+    opacity: 0.82,
   },
   inactive: {
-    opacity: 0.55,
+    opacity: 0.4,
   },
   label: {
     fontSize: 17,
-    fontWeight: "700",
+    fontWeight: "600",
+    letterSpacing: 0.1,
+  },
+  smallLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  primaryLabel: {
+    color: colors.white,
   },
 });
-
-const variantStyles = {
-  primary: {
-    container: { backgroundColor: colors.primary },
-    pressed: { backgroundColor: colors.primaryHover },
-    label: { color: colors.white },
-  },
-  secondary: {
-    container: { backgroundColor: colors.secondary },
-    pressed: { backgroundColor: "#d7dbe0" },
-    label: { color: colors.secondaryText },
-  },
-  danger: {
-    container: { backgroundColor: colors.danger },
-    pressed: { backgroundColor: colors.dangerHover },
-    label: { color: colors.white },
-  },
-} as const;
