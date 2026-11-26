@@ -3,6 +3,8 @@ import type { Lang } from "./types";
 const en = {
   appTitle: "Who Is The Undercover",
   appSubtitle: "Create a room, share the code, find the spy.",
+  privacyPolicy: "Privacy policy",
+  errorOpenPrivacyPolicy: "Could not open the privacy policy. Please try again.",
   tabCreate: "Create room",
   tabJoin: "Join room",
   langEn: "EN",
@@ -56,6 +58,8 @@ type StringKey = keyof typeof en;
 const zh: Record<StringKey, string> = {
   appTitle: "谁是卧底",
   appSubtitle: "创建房间，分享房间号，找出卧底。",
+  privacyPolicy: "隐私政策",
+  errorOpenPrivacyPolicy: "无法打开隐私政策，请重试。",
   tabCreate: "创建房间",
   tabJoin: "加入房间",
   langEn: "EN",

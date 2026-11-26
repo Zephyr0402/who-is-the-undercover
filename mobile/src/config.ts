@@ -12,7 +12,7 @@ declare const process: {
 };
 
 /** Backend used by release builds of the native app. */
-const PRODUCTION_BASE_URL = "https://www.bvshen.com/who-is-the-undercover";
+export const PRODUCTION_BASE_URL = "https://www.bvshen.com/who-is-the-undercover";
 const DEV_BACKEND_PORT = 8000;
 
 function stripTrailingSlash(value: string): string {

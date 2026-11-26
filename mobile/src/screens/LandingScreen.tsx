@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { AppButton } from "../components/AppButton";
 import { Card } from "../components/Card";
 import { SegmentedControl } from "../components/SegmentedControl";
 import { TextField } from "../components/TextField";
+import { PRODUCTION_BASE_URL } from "../config";
 import { t } from "../i18n";
+import { colors } from "../theme";
 import type { Lang } from "../types";
 import { sanitizeCode } from "../useUndercover";
 
@@ -28,6 +30,20 @@ export function LandingScreen({
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
+  const [policyError, setPolicyError] = useState(false);
+
+  const policyPath = lang === "zh" ? "privacy-policy-zh" : "privacy-policy";
+  const policyUrl = `${PRODUCTION_BASE_URL}/${policyPath}/`;
+  const policyLink = Platform.OS === "web" ? { href: policyUrl } : {};
+
+  const openPrivacyPolicy = async () => {
+    setPolicyError(false);
+    try {
+      await Linking.openURL(policyUrl);
+    } catch {
+      setPolicyError(true);
+    }
+  };
 
   const submitCreate = async () => {
     setBusy(true);
@@ -129,6 +145,20 @@ export function LandingScreen({
           </View>
         )}
       </Card>
+
+      <Pressable
+        accessibilityRole="link"
+        {...policyLink}
+        onPress={Platform.OS === "web" ? undefined : () => void openPrivacyPolicy()}
+        style={styles.policyLink}
+      >
+        <Text style={styles.policyText}>{t(lang, "privacyPolicy")}</Text>
+      </Pressable>
+      {policyError ? (
+        <Text accessibilityRole="alert" style={styles.policyError}>
+          {t(lang, "errorOpenPrivacyPolicy")}
+        </Text>
+      ) : null}
     </ScrollView>
   );
 }
@@ -146,6 +176,20 @@ const styles = StyleSheet.create({
   },
   langControl: {
     width: 148,
+  },
+  policyLink: {
+    alignSelf: "center",
+    justifyContent: "center",
+    minHeight: 44,
+    paddingHorizontal: 12,
+  },
+  policyText: {
+    color: colors.secondaryText,
+    textDecorationLine: "underline",
+  },
+  policyError: {
+    color: colors.danger,
+    textAlign: "center",
   },
   tabs: {
     marginBottom: 18,
