@@ -2,7 +2,7 @@
 
 **Last updated:** November 15, 2026
 
-Who Is The Undercover ("the App") is a multiplayer party word game operated by Shijun Shen ("we", "us"). This policy explains what information the App processes and why.
+Who Is The Undercover ("the App") is a multiplayer party word game. In this policy, "we" and "us" refer to the app operator. This policy explains what information the App processes and why.
 
 ## Information we collect
 
@@ -45,4 +45,4 @@ You can choose any nickname and can leave a room at any time. Because rooms are 
 
 We may update this policy from time to time. The latest version will always be available at this URL with an updated date.
 
-**Contact:** support@bvshen.com
+**Privacy contact:** support@bvshen.com
