@@ -20,7 +20,6 @@
 完整三人对局录屏链接：
 **<提交前填入演示视频链接>**
 
-如需我们配合现场演示，请通过 support@bvshen.com 联系。
 
 ## 技术说明
 
@@ -31,5 +30,4 @@
 
 ## 联系方式
 
-- 支持邮箱：support@bvshen.com
 - 隐私政策：https://www.bvshen.com/who-is-the-undercover/privacy-policy-zh/

@@ -20,7 +20,6 @@ The game requires **at least 3 players** (one device each).
 A screen recording of a complete three-player round is available here:
 **<ADD DEMO VIDEO URL BEFORE SUBMITTING>**
 
-If a live demonstration would help, contact us at support@bvshen.com and we can arrange one.
 
 ## Technical notes
 
@@ -31,5 +30,4 @@ If a live demonstration would help, contact us at support@bvshen.com and we can 
 
 ## Contact
 
-- Support: support@bvshen.com
 - Privacy policy: https://www.bvshen.com/who-is-the-undercover/privacy-policy/

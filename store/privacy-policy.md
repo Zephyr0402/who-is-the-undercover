@@ -39,10 +39,8 @@ Data is transmitted over HTTPS/WSS. No method of transmission or storage is comp
 
 ## Your choices
 
-You can choose any nickname and can leave a room at any time. Because rooms are deleted automatically and we do not maintain accounts, there is normally no stored profile to delete. For any privacy question or request, contact us at **support@bvshen.com**.
+You can choose any nickname and can leave a room at any time. Because rooms are deleted automatically and we do not maintain accounts, there is normally no stored profile to delete.
 
 ## Changes
 
 We may update this policy from time to time. The latest version will always be available at this URL with an updated date.
-
-**Privacy contact:** support@bvshen.com
