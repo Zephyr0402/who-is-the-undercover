@@ -124,7 +124,11 @@ assets and API calls).
 
 2. No Caddy change is needed — the existing route already points at port 8001.
 
-3. Visit `https://www.bvshen.com/who-is-the-undercover/`.
+3. Visit `https://www.bvshen.com/who-is-the-undercover/`. The same deployment
+   serves the English and Simplified Chinese privacy policies at
+   `/who-is-the-undercover/privacy-policy/` and
+   `/who-is-the-undercover/privacy-policy-zh/`. Update the matching
+   copies in `store/` and `mobile/public/` together when changing the policy.
 
 ## iOS app
 
@@ -132,7 +136,7 @@ The Expo config already includes the iOS bundle identifier
 `com.bvshen.undercover` and EAS build profiles in `mobile/eas.json`.
 Production builds talk to `https://www.bvshen.com/who-is-the-undercover`.
 
-One-time setup:
+Link EAS to your Expo account before the first cloud build:
 
 ```bash
 cd mobile
@@ -150,8 +154,10 @@ npm run submit:ios          # eas submit --platform ios --profile production
 For a local Xcode build instead of EAS:
 
 ```bash
-npm run prebuild:ios        # generates mobile/ios/
-npx expo run:ios
+npm run prebuild:ios        # generate mobile/ios/ if needed
+npx expo run:ios            # development build, uses Metro
+npx expo run:ios --configuration Release --device
+                            # signed device build with an embedded JS bundle
 ```
 
 Override the backend for a staging build with

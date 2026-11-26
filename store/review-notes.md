@@ -25,7 +25,7 @@ If a live demonstration would help, contact us at support@bvshen.com and we can 
 ## Technical notes
 
 - Backend: `https://www.bvshen.com/who-is-the-undercover` (HTTPS and WSS only).
-- No user-generated public content: rooms are private and joined only with a shared six-character code. Nicknames are limited to 20 characters and are visible only to players in the same room.
+- No user-generated public content: rooms are private and joined only with a shared six-character code. Nicknames are limited to 20 characters and are visible to anyone with the room code.
 - No analytics, advertising, or tracking SDKs are included.
 - Localization: English and Simplified Chinese.
 

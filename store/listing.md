@@ -8,7 +8,7 @@ Fill these into App Store Connect → App Information / Version Information.
 - Primary category: Games → Party
 - Secondary category (optional): Games → Word
 - Privacy policy URL: `<ADD URL>`
-  (host `store/privacy-policy.md` at that URL; `store/privacy-policy.zh.md` is the Chinese version)
+  (verify the deployed `/who-is-the-undercover/privacy-policy/` page before filling this field; the Chinese page is at `/who-is-the-undercover/privacy-policy-zh/`)
 - Support URL: `https://www.bvshen.com` (or a dedicated support page)
 - Marketing URL (optional): `https://www.bvshen.com/who-is-the-undercover`
 

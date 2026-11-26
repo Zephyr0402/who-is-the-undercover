@@ -27,7 +27,7 @@ Rooms and their player records are deleted automatically — within 24 hours aft
 
 ## Sharing
 
-We do not sell personal information. Data is stored on a server we operate and is only visible to players in your room as part of gameplay. We may disclose information if required by law.
+We do not sell personal information. We store game data on a server we operate. Anyone with the room code can view nicknames and shared room state, such as readiness, online status, and vote results. Your secret word is sent to your device during play and can be revealed to the room if you are voted out as the undercover player. We may disclose information if required by law.
 
 ## Children
 
