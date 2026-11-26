@@ -32,4 +32,4 @@
 ## 联系方式
 
 - 支持邮箱：support@bvshen.com
-- 隐私政策：`<提交前填入隐私政策 URL>`
+- 隐私政策：https://www.bvshen.com/who-is-the-undercover/privacy-policy-zh/

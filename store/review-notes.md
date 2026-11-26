@@ -32,4 +32,4 @@ If a live demonstration would help, contact us at support@bvshen.com and we can 
 ## Contact
 
 - Support: support@bvshen.com
-- Privacy policy: `<ADD PRIVACY POLICY URL>`
+- Privacy policy: https://www.bvshen.com/who-is-the-undercover/privacy-policy/
