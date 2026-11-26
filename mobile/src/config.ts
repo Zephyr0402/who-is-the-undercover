@@ -1,8 +1,7 @@
 import Constants from "expo-constants";
 import { Platform } from "react-native";
-// Deep import: react-native has no public API for the dev server URL, and
-// NativeModules.SourceCode is unavailable under the New Architecture.
-import getDevServer from "react-native/Libraries/Core/Devtools/getDevServer";
+
+import { packagerHost } from "./packagerHost";
 
 // Expo inlines EXPO_PUBLIC_* variables at build time; declare the minimal
 // shape so TypeScript does not require @types/node.
@@ -33,15 +32,6 @@ function webBaseUrl(): string {
   // prefix before proxying to FastAPI, so the browser has to add it back.
   const path = window.location.pathname.replace(/\/index\.html$/, "");
   return stripTrailingSlash(path);
-}
-
-/** Host of the Metro server, e.g. "192.168.1.88". */
-function packagerHost(): string | null {
-  if (!__DEV__) {
-    return null;
-  }
-  const match = /^https?:\/\/([^/:?#]+)/.exec(getDevServer().url);
-  return match?.[1] ?? null;
 }
 
 function nativeBaseUrl(): string {
