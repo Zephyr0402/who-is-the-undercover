@@ -93,6 +93,13 @@ WIU_WEB_BASE_URL=/who-is-the-undercover npm run export:web
 The app derives its API/WebSocket base from the page URL, so no extra runtime
 configuration is needed.
 
+## Test room sessions
+
+```bash
+python -m pip install -r requirements.txt httpx2
+python -m unittest discover -s tests -v
+```
+
 ## Run with Docker Compose
 
 ```bash

@@ -1,25 +1,27 @@
 """Who Is The Undercover - real-time game server.
 
-FastAPI + native WebSockets. No login; players identify themselves with a
-client-generated player id stored in localStorage. Rooms are persisted in
+FastAPI + native WebSockets. No login; the server issues a private room
+session credential alongside each public player ID. Rooms are persisted in
 SQLite so browser refreshes and server restarts don't lose game state.
 """
 
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import hmac
 import json
 import os
 import random
+import secrets
 import sqlite3
-import string
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Response, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -37,6 +39,7 @@ WEB_BUILD_AVAILABLE = (WEB_DIR / "index.html").exists()
 WORDS_FILE = Path(__file__).parent / "words.json"
 DATA_DIR = Path(os.environ.get("WIU_DATA_DIR", Path(__file__).parent / "data"))
 DB_FILE = DATA_DIR / "rooms.db"
+ROOM_PROTOCOL_VERSION = 2
 
 WORD_PAIRS: list[dict[str, str]] = []
 
@@ -57,6 +60,7 @@ _db_lock = asyncio.Lock()
 class Player:
     id: str
     name: str
+    session_token_hash: Optional[str]
     is_ready: bool = False
     role: Optional[str] = None  # "civilian" | "undercover"
     word: Optional[str] = None
@@ -81,12 +85,13 @@ class Room:
 class CreateRoomIn(BaseModel):
     name: str = Field(min_length=1, max_length=20)
     language: str = Field(default="en", pattern=r"^(en|zh)$")
-    player_id: Optional[str] = None
+    protocol_version: Optional[int] = None
 
 
 class CreateRoomOut(BaseModel):
     room_code: str
     player_id: str
+    session_token: str
     language: str
 
 
@@ -109,8 +114,13 @@ def _generate_code(length: int = 6) -> str:
             return code
 
 
-def _generate_player_id() -> str:
-    return "".join(random.choices(string.ascii_lowercase + string.digits, k=16))
+def _session_token_hash(token: str) -> str:
+    return hashlib.sha256(token.encode()).hexdigest()
+
+
+def _new_player(name: str) -> tuple[Player, str]:
+    token = secrets.token_urlsafe(32)
+    return Player(secrets.token_hex(12), name, _session_token_hash(token)), token
 
 
 def _undercover_count(total: int) -> int:
@@ -165,6 +175,7 @@ CREATE TABLE IF NOT EXISTS players (
     word        TEXT,
     is_online   INTEGER NOT NULL DEFAULT 0,
     is_voted_out INTEGER NOT NULL DEFAULT 0,
+    session_token_hash TEXT,
     PRIMARY KEY (id, room_code),
     FOREIGN KEY (room_code) REFERENCES rooms(code) ON DELETE CASCADE
 );
@@ -181,6 +192,7 @@ def init_db() -> None:
         for col_sql in (
             "ALTER TABLE rooms ADD COLUMN language TEXT NOT NULL DEFAULT 'en'",
             "ALTER TABLE players ADD COLUMN is_voted_out INTEGER NOT NULL DEFAULT 0",
+            "ALTER TABLE players ADD COLUMN session_token_hash TEXT",
         ):
             try:
                 conn.execute(col_sql)
@@ -212,6 +224,7 @@ def _player_to_row(player: Player, room_code: str) -> tuple:
         player.word,
         int(player.is_online),
         int(player.is_voted_out),
+        player.session_token_hash,
     )
 
 
@@ -240,8 +253,9 @@ async def _save_room(room: Room) -> None:
             conn.execute("DELETE FROM players WHERE room_code = ?", (room.code,))
             conn.executemany(
                 """
-                INSERT INTO players (id, room_code, name, is_ready, role, word, is_online, is_voted_out)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO players (id, room_code, name, is_ready, role, word, is_online,
+                                     is_voted_out, session_token_hash)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 [_player_to_row(p, room.code) for p in room.players.values()],
             )
@@ -284,6 +298,7 @@ async def _load_all_rooms() -> None:
             player = Player(
                 id=p["id"],
                 name=p["name"],
+                session_token_hash=p["session_token_hash"],
                 is_ready=bool(p["is_ready"]),
                 role=p["role"],
                 word=p["word"],
@@ -499,19 +514,20 @@ if not WEB_BUILD_AVAILABLE:
 
 
 @app.post("/api/rooms")
-async def create_room(body: CreateRoomIn) -> CreateRoomOut:
+async def create_room(body: CreateRoomIn, response: Response) -> CreateRoomOut:
+    if body.protocol_version != ROOM_PROTOCOL_VERSION:
+        raise HTTPException(status_code=426, detail="Update the app to play online")
     name = body.name.strip()
     if not name:
         raise HTTPException(status_code=400, detail="Name is required")
 
-    player_id = body.player_id.strip() if body.player_id else _generate_player_id()
     code = _generate_code()
     now = _now()
-    host = Player(id=player_id, name=name, is_online=False)
+    host, token = _new_player(name)
     room = Room(
         code=code,
-        host_id=player_id,
-        players={player_id: host},
+        host_id=host.id,
+        players={host.id: host},
         language=body.language,
         created_at=now,
         updated_at=now,
@@ -519,7 +535,10 @@ async def create_room(body: CreateRoomIn) -> CreateRoomOut:
     rooms[code] = room
     room_locks[code] = asyncio.Lock()
     await _save_room(room)
-    return CreateRoomOut(room_code=code, player_id=player_id, language=body.language)
+    response.headers["Cache-Control"] = "no-store"
+    return CreateRoomOut(
+        room_code=code, player_id=host.id, session_token=token, language=body.language
+    )
 
 
 class RoomInfoOut(BaseModel):
@@ -532,7 +551,7 @@ class RoomInfoOut(BaseModel):
 async def get_room(room_code: str) -> RoomInfoOut:
     room_code = room_code.upper().strip()
     room = rooms.get(room_code)
-    if not room:
+    if not room or not _room_has_secure_sessions(room):
         raise HTTPException(status_code=404, detail="Room not found")
     return {"exists": True, "language": room.language, "room": _public_room_state(room)}
 
@@ -542,91 +561,113 @@ async def get_room(room_code: str) -> RoomInfoOut:
 # ---------------------------------------------------------------------------
 
 
+def _room_has_secure_sessions(room: Room) -> bool:
+    # Pre-upgrade rooms have no private credentials and cannot be resumed.
+    return any(player.session_token_hash for player in room.players.values())
+
+
+async def _reject_socket(ws: WebSocket, message: str) -> None:
+    await _send(ws, {"type": "error", "message": message})
+    await ws.close(code=1008)
+
+
 @app.websocket("/ws/{room_code}")
 async def websocket_endpoint(ws: WebSocket, room_code: str):
     room_code = room_code.upper().strip()
-    player_id = ws.query_params.get("player_id", "").strip()
-    name = ws.query_params.get("name", "").strip()
-    language = ws.query_params.get("language", "").strip() or room.language
-
-    room = rooms.get(room_code)
-    if not room:
-        await ws.accept()
-        await _send(ws, {"type": "error", "message": "Room not found"})
-        await ws.close()
+    await ws.accept()
+    if ws.query_params.get("v") != str(ROOM_PROTOCOL_VERSION):
+        await _reject_socket(ws, "Update the app to play online")
         return
 
-    if not player_id:
-        player_id = _generate_player_id()
+    room = rooms.get(room_code)
+    if not room or not _room_has_secure_sessions(room):
+        await _reject_socket(ws, "Room not found")
+        return
+
+    try:
+        hello = await asyncio.wait_for(ws.receive_json(), timeout=10)
+    except WebSocketDisconnect:
+        return
+    except (TimeoutError, ValueError, KeyError):
+        await _reject_socket(ws, "Invalid session")
+        return
+
+    if not isinstance(hello, dict) or hello.get("type") != "authenticate":
+        await _reject_socket(ws, "Invalid session")
+        return
 
     lock = _get_or_create_lock(room_code)
     async with lock:
-        existing = room.players.get(player_id)
-        if existing:
-            # Reconnecting; restore the socket and mark online.
-            existing.name = name or existing.name
-            existing.ws = ws
-            existing.is_online = True
-            # If this player was the original host, restore host privileges.
-            if room.host_id == existing.id:
-                pass  # host_id already points to them
-            elif not any(p.id == room.host_id and p.is_online for p in room.players.values()):
-                # Current host is offline; transfer back if this reconnecting player
-                # was the last online host (we keep host_id sticky, so this only
-                # happens when the stored host reconnects).
-                if existing.id == room.host_id:
-                    pass
+        if rooms.get(room_code) is not room:
+            await _reject_socket(ws, "Room not found")
+            return
+
+        new_token = None
+        if "player_id" in hello or "session_token" in hello:
+            player_id = hello.get("player_id")
+            token = hello.get("session_token")
+            player = room.players.get(player_id) if isinstance(player_id, str) else None
+            if (
+                not player
+                or not player.session_token_hash
+                or not isinstance(token, str)
+                or len(token) != 43
+                or not token.isascii()
+                or not hmac.compare_digest(player.session_token_hash, _session_token_hash(token))
+            ):
+                await _reject_socket(ws, "Invalid session")
+                return
         else:
-            if language != room.language:
-                await ws.accept()
-                await _send(ws, {"type": "error", "message": "Language mismatch"})
-                await ws.close()
+            if hello.get("language") != room.language:
+                await _reject_socket(ws, "Language mismatch")
                 return
             if room.status != "waiting":
-                await ws.accept()
-                await _send(ws, {"type": "error", "message": "Game already started; only existing players can reconnect"})
-                await ws.close()
+                await _reject_socket(ws, "Game already started; only existing players can reconnect")
                 return
-            if not name:
-                await ws.accept()
-                await _send(ws, {"type": "error", "message": "Name is required"})
-                await ws.close()
+            raw_name = hello.get("name")
+            name = raw_name.strip() if isinstance(raw_name, str) else ""
+            if not 1 <= len(name) <= 20:
+                await _reject_socket(ws, "Name must contain 1 to 20 characters")
                 return
-            # Check duplicate name (case-insensitive)
-            lower_name = name.lower()
-            if any(p.name.lower() == lower_name for p in room.players.values()):
-                await ws.accept()
-                await _send(ws, {"type": "error", "message": "That name is already taken in this room"})
-                await ws.close()
+            if any(p.name.casefold() == name.casefold() for p in room.players.values()):
+                await _reject_socket(ws, "That name is already taken in this room")
                 return
-            player = Player(id=player_id, name=name, ws=ws, is_online=True)
-            room.players[player_id] = player
-            # If room has no host (original host left and was never transferred), make newcomer host.
-            if room.host_id not in room.players:
-                room.host_id = player_id
+            player, new_token = _new_player(name)
+            room.players[player.id] = player
+
+        player_id = player.id
+        previous_socket = player.ws
+        player.ws = ws
+        player.is_online = True
+        if room.host_id not in room.players:
+            room.host_id = player_id
         room.updated_at = _now()
         await _save_room(room)
 
-    await ws.accept()
-    await _broadcast_state(room)
-    # If game is already in progress, send the reconnected player their word privately.
-    player = room.players[player_id]
-    if room.status == "playing" and player.word:
-        await _send_private_role(player)
-
     try:
-        while True:
-            raw = await ws.receive_text()
+        if previous_socket and previous_socket is not ws:
             try:
-                data = json.loads(raw)
-            except json.JSONDecodeError:
+                await previous_socket.close(code=4001, reason="Session moved to a new connection")
+            except (OSError, RuntimeError, WebSocketDisconnect):
+                pass
+        async with lock:
+            if player.ws is not ws:
+                return
+            if new_token:
+                await _send(ws, {"type": "session", "player_id": player_id, "session_token": new_token})
+            await _broadcast_state(room)
+
+        while True:
+            try:
+                data = await ws.receive_json()
+            except (ValueError, KeyError):
                 await _send(ws, {"type": "error", "message": "Invalid JSON"})
                 continue
 
-            msg_type = data.get("type")
+            msg_type = data.get("type") if isinstance(data, dict) else None
             async with lock:
                 player = room.players.get(player_id)
-                if player is None:
+                if player is None or player.ws is not ws:
                     break
 
                 if msg_type == "ready":
@@ -648,7 +689,7 @@ async def websocket_endpoint(ws: WebSocket, room_code: str):
                     if len(room.players) < 3:
                         await _send(ws, {"type": "error", "message": "Need at least 3 players to start"})
                         continue
-                    if not all(p.is_ready for p in room.players.values()):
+                    if not all(p.is_ready and p.is_online for p in room.players.values()):
                         await _send(ws, {"type": "error", "message": "All players must be ready"})
                         continue
 
@@ -727,21 +768,16 @@ async def websocket_endpoint(ws: WebSocket, room_code: str):
     finally:
         async with lock:
             player = room.players.get(player_id)
-            if player:
+            if player and player.ws is ws:
                 player.ws = None
                 player.is_online = False
                 room.updated_at = _now()
-                # Do NOT remove the player from the room immediately; keep them
-                # so a phone lock/app switch can reconnect. A background cleanup
-                # task eventually removes stale empty rooms.
-                if room.host_id == player_id and len(room.players) > 1:
-                    # Host disconnected temporarily; transfer host to another
-                    # active player so the room keeps running. Host regains
-                    # control automatically when they reconnect with the same id.
-                    for other in room.players.values():
-                        if other.id != player_id:
-                            room.host_id = other.id
-                            break
+                if room.host_id == player_id:
+                    # Keep disconnected players so they can reconnect. Transfer
+                    # host only when another player is currently online.
+                    successor = next((p for p in room.players.values() if p.is_online), None)
+                    if successor:
+                        room.host_id = successor.id
                 await _save_room(room)
                 await _broadcast_state(room)
 

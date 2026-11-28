@@ -40,6 +40,7 @@
       toastCopied: "Copied!",
       toastCopyFailed: "Could not copy automatically",
       toastReconnecting: "Connection lost. Trying to reconnect…",
+      toastSessionMoved: "This room session was opened on another connection.",
       toastGameStarted: "Game started! Check your card.",
       toastRoomNotFound: "Room not found",
       toastHostLeft: "Host left. The room has ended.",
@@ -91,6 +92,7 @@
       toastCopied: "已复制！",
       toastCopyFailed: "无法自动复制",
       toastReconnecting: "连接断开，正在重新连接…",
+      toastSessionMoved: "此房间会话已在其他连接打开。",
       toastGameStarted: "游戏开始！查看你的词。",
       toastRoomNotFound: "房间不存在",
       toastHostLeft: "房主已离开，房间已结束。",
@@ -138,6 +140,7 @@
     playerId: null,
     name: null,
     room: null,
+    sessionToken: null,
     myRole: null,
     myWord: null,
     isHost: false,
@@ -175,21 +178,13 @@
     lobbyLeaveBtn: document.getElementById("lobby-leave-btn"),
   };
 
-  function generateId() {
-    const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-    let id = "";
-    for (let i = 0; i < 16; i++) {
-      id += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return id;
-  }
-
   function saveSession() {
     storageSet(
       STORAGE_KEY,
       JSON.stringify({
         roomCode: state.roomCode,
         playerId: state.playerId,
+        sessionToken: state.sessionToken,
         name: state.name,
       })
     );
@@ -475,105 +470,113 @@
     }
   }
 
-  function connectWS(code, playerId, name) {
-    if (state.ws) {
-      if (state.ws.__cleanup) state.ws.__cleanup();
-      state.ws.close();
-      state.ws = null;
+  function connectWS(reconnectAttempts = 0) {
+    const oldSocket = state.ws;
+    state.ws = null;
+    if (oldSocket) {
+      oldSocket.__cleanup();
+      oldSocket.close();
     }
 
-    const url = wsUrl(`/ws/${code}?player_id=${encodeURIComponent(playerId)}&name=${encodeURIComponent(name)}&language=${encodeURIComponent(state.lang)}`);
-    state.ws = new WebSocket(url);
-
-    state.ws.onopen = () => {
-      saveSession();
-    };
-
-    state.ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        handleMessage(data);
-      } catch (err) {
-        console.error("Bad message", event.data, err);
-      }
-    };
-
-    let reconnectAttempts = 0;
-    const maxReconnects = 20;
+    const ws = new WebSocket(wsUrl(`/ws/${state.roomCode}?v=2`));
+    state.ws = ws;
+    let sawRoomState = false;
     let reconnectTimer = null;
 
-    function doReconnect() {
-      if (reconnectTimer) {
-        clearTimeout(reconnectTimer);
-        reconnectTimer = null;
-      }
-      reconnectAttempts++;
-      if (reconnectAttempts > maxReconnects) {
-        showToast(t("toastRoomNotFound"));
-        clearSession();
-        state.room = null;
-        state.roomCode = null;
-        state.myRole = null;
-        state.myWord = null;
-        setScreen("landing");
-        switchTab("create");
+    ws.onopen = () => {
+      ws.send(JSON.stringify({
+        type: "authenticate",
+        ...(state.sessionToken
+          ? { player_id: state.playerId, session_token: state.sessionToken }
+          : { name: state.name, language: state.lang }),
+      }));
+    };
+
+    ws.onmessage = (event) => {
+      if (state.ws !== ws) return;
+      let data;
+      try {
+        data = JSON.parse(event.data);
+      } catch {
         return;
       }
-      showToast(t("toastReconnecting"));
-      reconnectTimer = setTimeout(() => {
-        if (state.roomCode && state.playerId && state.name) {
-          connectWS(state.roomCode, state.playerId, state.name);
-        }
-      }, Math.min(1000 + reconnectAttempts * 500, 5000));
+      if (data.type === "session") {
+        state.playerId = data.player_id;
+        state.sessionToken = data.session_token;
+        saveSession();
+        return;
+      }
+      if (data.type === "room_state") {
+        sawRoomState = true;
+        reconnectAttempts = 0;
+      }
+      if (data.type === "error" && !sawRoomState) {
+        resetAfterConnectionFailure(data.message);
+        return;
+      }
+      handleMessage(data);
+    };
+
+    function resetAfterConnectionFailure(message, clearStoredSession = true) {
+      if (state.ws === ws) state.ws = null;
+      ws.__cleanup();
+      ws.close();
+      if (clearStoredSession) clearSession();
+      state.room = null;
+      state.roomCode = null;
+      state.playerId = null;
+      state.sessionToken = null;
+      state.myRole = null;
+      state.myWord = null;
+      setScreen("landing");
+      showToast(message);
     }
 
-    state.ws.onclose = (event) => {
-      state.ws = null;
-      // Normal close (event.wasClean === true without error) usually means the
-      // user left the room manually. Otherwise try to reconnect.
-      if (!event.wasClean) {
-        doReconnect();
+    ws.onclose = (event) => {
+      if (state.ws !== ws) return;
+      ws.__cleanup();
+
+      if (event.code === 4001) {
+        resetAfterConnectionFailure(t("toastSessionMoved"), false);
+        return;
       }
+      if (!state.sessionToken || ++reconnectAttempts > 20) {
+        resetAfterConnectionFailure(t("toastRoomNotFound"));
+        return;
+      }
+
+      showToast(t("toastReconnecting"));
+      reconnectTimer = setTimeout(() => {
+        if (state.ws === ws && state.roomCode) connectWS(reconnectAttempts);
+      }, Math.min(1000 + reconnectAttempts * 500, 5000));
     };
 
-    state.ws.onerror = () => {
-      // Let onclose handle reconnection, but make sure we don't double-trigger.
-      if (state.ws) {
-        state.ws.close();
-        state.ws = null;
-      }
-    };
-
-    // Heartbeat to keep connection alive through short phone sleeps / app switches.
     const heartbeat = setInterval(() => {
-      if (state.ws && state.ws.readyState === WebSocket.OPEN) {
-        try {
-          state.ws.send(JSON.stringify({ type: "ping" }));
-        } catch {
-          // Let onclose handle reconnect.
-        }
+      if (state.ws === ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: "ping" }));
       }
     }, 15000);
 
-    state.ws.__cleanup = () => {
+    ws.__cleanup = () => {
       clearInterval(heartbeat);
       if (reconnectTimer) clearTimeout(reconnectTimer);
     };
   }
 
   async function createRoom(name) {
-    state.playerId = generateId();
     state.name = name.trim();
     try {
       const data = await postJson(apiUrl("/api/rooms"), {
         name: state.name,
         language: state.lang,
-        player_id: state.playerId,
+        protocol_version: 2,
       });
       state.roomCode = data.room_code;
+      state.playerId = data.player_id;
+      state.sessionToken = data.session_token;
+      if (!state.sessionToken) throw new Error(t("toastRoomNotFound"));
       saveSession();
-      connectWS(state.roomCode, state.playerId, state.name);
-      setScreen("lobby");
+      connectWS();
     } catch (err) {
       showToast(err.message);
     }
@@ -581,9 +584,10 @@
 
   async function joinRoom(code, name) {
     clearSession(); // ensure no stale session interferes
-    state.playerId = generateId();
     state.name = name.trim();
     state.roomCode = sanitizeCode(code);
+    state.playerId = null;
+    state.sessionToken = null;
 
     if (state.roomCode.length === 0) {
       showToast(t("toastRoomNotFound"));
@@ -608,9 +612,7 @@
         const langName = i18n[roomInfo.language]?.langName || roomInfo.language;
         throw new Error(t("errorWrongLanguage").replace(/\{lang\}/g, langName));
       }
-      saveSession();
-      connectWS(state.roomCode, state.playerId, state.name);
-      setScreen("lobby");
+      connectWS();
     } catch (err) {
       showToast(err.message || t("toastRoomNotFound"));
     } finally {
@@ -644,11 +646,16 @@
   function leaveRoom() {
     if (state.ws) {
       send("leave");
-      state.ws.close();
+      const ws = state.ws;
+      state.ws = null;
+      ws.__cleanup();
+      ws.close();
     }
     clearSession();
     state.room = null;
     state.roomCode = null;
+    state.playerId = null;
+    state.sessionToken = null;
     state.myRole = null;
     state.myWord = null;
     setScreen("landing");
@@ -695,7 +702,7 @@
     applyLanguage();
 
     const session = loadSession();
-    if (session && session.roomCode && session.playerId && session.name) {
+    if (session && session.roomCode && session.playerId && session.sessionToken && session.name) {
       // Validate that the stored room still exists before auto-reconnecting;
       // otherwise the join form won't work and the user gets stuck.
       try {
@@ -704,12 +711,12 @@
           const roomInfo = await check.json();
           state.roomCode = session.roomCode;
           state.playerId = session.playerId;
+          state.sessionToken = session.sessionToken;
           state.name = session.name;
           if (roomInfo.language && roomInfo.language !== state.lang) {
             setLang(roomInfo.language);
           }
-          connectWS(session.roomCode, session.playerId, session.name);
-          setScreen("lobby");
+          connectWS();
         } else {
           clearSession();
           setScreen("landing");
@@ -718,6 +725,8 @@
         clearSession();
         setScreen("landing");
       }
+    } else if (session) {
+      clearSession();
     }
   }
 

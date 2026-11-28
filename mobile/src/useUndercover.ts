@@ -11,19 +11,12 @@ const MAX_RECONNECTS = 20;
 const HEARTBEAT_MS = 15_000;
 const TOAST_MS = 4_000;
 
+type RoomConnection = Session | Pick<Session, "roomCode" | "name">;
+
 export interface ToastState {
   id: number;
   message: string;
   kind: "error" | "info";
-}
-
-function generatePlayerId(): string {
-  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-  let id = "";
-  for (let i = 0; i < 16; i += 1) {
-    id += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return id;
 }
 
 export function sanitizeCode(value: string): string {
@@ -67,13 +60,15 @@ async function readSession(): Promise<Session | null> {
       typeof parsed === "object" &&
       typeof (parsed as Session).roomCode === "string" &&
       typeof (parsed as Session).playerId === "string" &&
-      typeof (parsed as Session).name === "string"
+      typeof (parsed as Session).name === "string" &&
+      typeof (parsed as Session).sessionToken === "string"
     ) {
       return parsed as Session;
     }
   } catch {
     // ignore malformed storage
   }
+  await storageRemove(SESSION_KEY);
   return null;
 }
 
@@ -173,13 +168,13 @@ export function useUndercover(): UndercoverGame {
     }
   }, []);
 
-  const resetToLanding = useCallback(() => {
+  const resetToLanding = useCallback((clearStoredSession = true) => {
     closeSocket();
     identityRef.current = null;
     setPlayer(null);
     setRoom(null);
     setMyWord(null);
-    void storageRemove(SESSION_KEY);
+    if (clearStoredSession) void storageRemove(SESSION_KEY);
   }, [closeSocket, setPlayer]);
 
   const handleMessage = useCallback(
@@ -253,34 +248,27 @@ export function useUndercover(): UndercoverGame {
   );
 
   const connectWS = useCallback(
-    function connect(
-      roomCode: string,
-      id: string,
-      name: string,
-      isReconnect = false
-    ) {
+    function connect(connection: RoomConnection, isReconnect = false) {
       closeSocket();
-      const session: Session = { roomCode, playerId: id, name };
+      const { roomCode, name } = connection;
+      const session = "sessionToken" in connection ? connection : null;
       identityRef.current = session;
       sawRoomStateRef.current = false;
-      setPlayer(id);
+      setPlayer(session?.playerId ?? null);
       if (!isReconnect) {
         reconnectAttemptsRef.current = 0;
       }
 
-      const url = wsUrl(
-        `/ws/${roomCode}?player_id=${encodeURIComponent(
-          id
-        )}&name=${encodeURIComponent(name)}&language=${encodeURIComponent(
-          langRef.current
-        )}`
-      );
-      const ws = new WebSocket(url);
+      const ws = new WebSocket(wsUrl(`/ws/${roomCode}?v=2`));
       wsRef.current = ws;
 
       ws.onopen = () => {
-        reconnectAttemptsRef.current = 0;
-        void storageSet(SESSION_KEY, JSON.stringify(session));
+        ws.send(JSON.stringify({
+          type: "authenticate",
+          ...(session
+            ? { player_id: session.playerId, session_token: session.sessionToken }
+            : { name, language: langRef.current }),
+        }));
       };
 
       ws.onmessage = (event) => {
@@ -291,11 +279,24 @@ export function useUndercover(): UndercoverGame {
         } catch {
           return;
         }
+        if (data.type === "session") {
+          const joined: Session = {
+            roomCode,
+            name,
+            playerId: data.player_id,
+            sessionToken: data.session_token,
+          };
+          identityRef.current = joined;
+          setPlayer(joined.playerId);
+          void storageSet(SESSION_KEY, JSON.stringify(joined));
+          return;
+        }
+        if (data.type === "room_state") reconnectAttemptsRef.current = 0;
         handleMessage(data);
       };
 
       // onclose always follows onerror; reconnection is handled there.
-      ws.onclose = () => {
+      ws.onclose = (event) => {
         if (wsRef.current !== ws) return;
         wsRef.current = null;
         if (heartbeatRef.current) {
@@ -303,8 +304,16 @@ export function useUndercover(): UndercoverGame {
           heartbeatRef.current = null;
         }
 
-        const current = identityRef.current;
-        if (!current) return;
+        if (event.code === 4001) {
+          notify(t(langRef.current, "toastSessionMoved"));
+          resetToLanding(false);
+          return;
+        }
+        if (!identityRef.current) {
+          notify(t(langRef.current, "errorGeneric"));
+          resetToLanding();
+          return;
+        }
 
         reconnectAttemptsRef.current += 1;
         if (reconnectAttemptsRef.current > MAX_RECONNECTS) {
@@ -318,7 +327,7 @@ export function useUndercover(): UndercoverGame {
         reconnectTimerRef.current = setTimeout(() => {
           const latest = identityRef.current;
           if (latest) {
-            connect(latest.roomCode, latest.playerId, latest.name, true);
+            connect(latest, true);
           }
         }, delay);
       };
@@ -344,7 +353,6 @@ export function useUndercover(): UndercoverGame {
         return false;
       }
 
-      const id = generatePlayerId();
       try {
         const res = await fetch(apiUrl("/api/rooms"), {
           method: "POST",
@@ -352,7 +360,7 @@ export function useUndercover(): UndercoverGame {
           body: JSON.stringify({
             name,
             language: langRef.current,
-            player_id: id,
+            protocol_version: 2,
           }),
         });
         if (!res.ok) {
@@ -361,15 +369,18 @@ export function useUndercover(): UndercoverGame {
         }
         const data = (await res.json()) as {
           room_code: string;
-          player_id?: string;
+          player_id: string;
+          session_token: string;
         };
+        if (!data.session_token) throw new Error(t(langRef.current, "errorGeneric"));
         const session: Session = {
           roomCode: data.room_code,
-          playerId: data.player_id || id,
+          playerId: data.player_id,
+          sessionToken: data.session_token,
           name,
         };
         await storageSet(SESSION_KEY, JSON.stringify(session));
-        connectWS(session.roomCode, session.playerId, session.name);
+        connectWS(session);
         return true;
       } catch (err) {
         notify(errorMessage(err, t(langRef.current, "errorGeneric")));
@@ -392,7 +403,6 @@ export function useUndercover(): UndercoverGame {
         return false;
       }
 
-      const id = generatePlayerId();
       try {
         const res = await fetch(apiUrl(`/api/rooms/${code}`));
         if (!res.ok) {
@@ -411,9 +421,7 @@ export function useUndercover(): UndercoverGame {
           );
         }
 
-        const session: Session = { roomCode: code, playerId: id, name };
-        await storageSet(SESSION_KEY, JSON.stringify(session));
-        connectWS(code, id, name);
+        connectWS({ roomCode: code, name });
         return true;
       } catch (err) {
         notify(errorMessage(err, t(langRef.current, "errorGeneric")));
@@ -475,7 +483,7 @@ export function useUndercover(): UndercoverGame {
           setLang(info.language);
           void storageSet(LANG_KEY, info.language);
         }
-        connectWS(session.roomCode, session.playerId, session.name);
+        connectWS(session);
       } catch {
         if (!cancelled) await storageRemove(SESSION_KEY);
       }

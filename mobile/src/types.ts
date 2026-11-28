@@ -28,10 +28,12 @@ export interface Room {
 export interface Session {
   roomCode: string;
   playerId: string;
+  sessionToken: string;
   name: string;
 }
 
 export type ServerMessage =
+  | { type: "session"; player_id: string; session_token: string }
   | { type: "room_state"; room: Room; your_word?: string }
   | { type: "your_word"; word: string }
   | {
